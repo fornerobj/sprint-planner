@@ -18,39 +18,34 @@ export default function HomePage() {
     "Analytics?",
     "Rate Limiting?",
   ];
+
   return (
-    <main className="">
-      <div className="flex flex-col">
-        <header className="flex h-8 justify-around">
-          <h1>KANBAN</h1>
-          <p>Sign in</p>
-          <p>Home</p>
-        </header>
-        <div className="flex text-center">
-          <div className="flex h-full w-1/3 flex-col">
-            <h1>Required</h1>
-            {required.map((activity) => (
-              <div key={id++} className="bg-slate-500 p-4">
-                <h1>{activity}</h1>
-              </div>
-            ))}
-          </div>
-          <div className="flex h-full w-1/3 flex-col">
-            <h1>In Progress</h1>
-            {in_progress.map((activity) => (
-              <div key={id++} className="bg-slate-500 p-4">
-                <h1>{activity}</h1>
-              </div>
-            ))}
-          </div>
-          <div className="flex h-full w-1/3 flex-col">
-            <h1>Finished</h1>
-            {finished.map((activity) => (
-              <div key={id++} className="bg-slate-500 p-4">
-                <h1>{activity}</h1>
-              </div>
-            ))}
-          </div>
+    <main className="flex min-h-screen flex-col gap-4">
+      {/* Container for the 3 columns */}
+      <div className="flex flex-1 text-center">
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <h1>Required</h1>
+          {required.map((activity) => (
+            <div key={id++} className="bg-slate-800 p-4">
+              <h1>{activity}</h1>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <h1>In Progress</h1>
+          {in_progress.map((activity) => (
+            <div key={id++} className="bg-slate-800 p-4">
+              <h1>{activity}</h1>
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-1 flex-col gap-4 p-4">
+          <h1>Finished</h1>
+          {finished.map((activity) => (
+            <div key={id++} className="bg-slate-800 p-4">
+              <h1>{activity}</h1>
+            </div>
+          ))}
         </div>
       </div>
     </main>
