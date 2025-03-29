@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { db } from "~/server/db";
 
-export default function HomePage() {
+export default async function HomePage() {
   let id = 1;
   const required = [
     "Scaffold basic ui with mock data",
@@ -18,6 +19,9 @@ export default function HomePage() {
     "Analytics?",
     "Rate Limiting?",
   ];
+
+  const posts = db.query.posts.findMany();
+  console.log(posts);
 
   return (
     <main className="flex min-h-screen flex-col gap-4">
