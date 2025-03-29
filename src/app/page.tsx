@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { db } from "~/server/db";
+
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   let id = 1;
@@ -20,8 +21,7 @@ export default async function HomePage() {
     "Rate Limiting?",
   ];
 
-  const posts = db.query.posts.findMany();
-  console.log(posts);
+  const posts = await db.query.posts.findMany();
 
   return (
     <main className="flex min-h-screen flex-col gap-4">
@@ -51,6 +51,13 @@ export default async function HomePage() {
             </div>
           ))}
         </div>
+      </div>
+      <div>
+        {posts.map((post) => (
+          <div key={post.id} className="bg-slate-800 p-4">
+            <h1>{post.name}</h1>
+          </div>
+        ))}
       </div>
     </main>
   );
