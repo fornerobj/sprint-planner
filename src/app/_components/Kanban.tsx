@@ -1,15 +1,18 @@
 import { CreateActivity } from "./CreateActivity";
 import { Task } from "./Task";
-import {
-  getFinishedActivities,
-  getInProgressActivities,
-  getRequiredActivities,
-} from "~/server/queries";
+import { getMyActivities } from "~/server/queries";
 
 export async function Kanban() {
-  const required = await getRequiredActivities();
-  const in_progress = await getInProgressActivities();
-  const finished = await getFinishedActivities();
+  const activities = await getMyActivities();
+  const required = activities.filter(
+    (activity) => activity.category === "Required",
+  );
+  const in_progress = activities.filter(
+    (activity) => activity.category === "In_Progress",
+  );
+  const finished = activities.filter(
+    (activity) => activity.category === "Finished",
+  );
 
   return (
     <div className="flex flex-col gap-6 p-4">
