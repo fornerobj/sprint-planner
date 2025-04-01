@@ -32,3 +32,5 @@ export const activities = createTable(
   }),
   (t) => [index("title_idx").on(t.title)],
 );
+
+export type TaskCategory = "Required" | "In_Progress" | "Finished";

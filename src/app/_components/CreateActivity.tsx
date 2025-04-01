@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
 import { createActivity } from "~/server/mutations";
+import type { TaskCategory } from "~/server/db/schema";
 
 export function CreateActivity() {
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState("Required");
+  const [category, setCategory] = useState<TaskCategory>("Required");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!content.trim()) {
@@ -21,7 +21,7 @@ export function CreateActivity() {
     setIsSubmitting(true);
 
     try {
-      createActivity({
+      await createActivity({
         content,
         category,
       });
@@ -61,7 +61,7 @@ export function CreateActivity() {
           <select
             id="category"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => setCategory(e.target.value as TaskCategory)}
             className="w-full rounded border border-slate-700 bg-slate-800 p-2 text-white"
           >
             <option value="Required">Required</option>

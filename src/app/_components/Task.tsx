@@ -1,62 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
+import type { TaskCategory } from "~/server/db/schema";
+import { updateActivityCategory } from "~/server/mutations";
 
 type Activity = {
   id: number;
   title: string;
-  category: "Required" | "In_Progress" | "Finished";
+  category: TaskCategory;
 };
 
 export function Task({ activity }: { activity: Activity }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
 
-  const moveTask = async (
-    newCategory: "Required" | "In_Progress" | "Finished",
-  ) => {
-    if (newCategory === activity.category || isUpdating) return;
+  const [optimisticActivity, setOptimisticActivity] = useOptimistic(
+    activity,
+    (state, newCategory: TaskCategory) => ({
+      ...state,
+      category: newCategory,
+    }),
+  );
+
+  const moveTask = async (newCategory: TaskCategory) => {
+    if (newCategory === optimisticActivity.category || isUpdating) return;
 
     setIsUpdating(true);
 
-    try {
-      const response = await fetch(`/api/activities/${activity.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          category: newCategory,
-        }),
-      });
+    setOptimisticActivity(newCategory);
 
-      if (!response.ok) {
-        throw new Error("Failed to update activity");
-      }
+    try {
+      await updateActivityCategory({
+        id: activity.id,
+        newCategory,
+      });
 
       router.refresh();
     } catch (error) {
       console.error("Error updating activity", error);
+      setOptimisticActivity(activity.category);
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const canMoveLeft = activity.category !== "Required";
-  const canMoveRight = activity.category !== "Finished";
+  const canMoveLeft = optimisticActivity.category !== "Required";
+  const canMoveRight = optimisticActivity.category !== "Finished";
 
   const prevCategory =
-    activity.category === "In_Progress"
+    optimisticActivity.category === "In_Progress"
       ? "Required"
-      : activity.category === "Finished"
+      : optimisticActivity.category === "Finished"
         ? "In_Progress"
         : null;
 
   const nextCategory =
-    activity.category === "Required"
+    optimisticActivity.category === "Required"
       ? "In_Progress"
-      : activity.category === "In_Progress"
+      : optimisticActivity.category === "In_Progress"
         ? "Finished"
         : null;
 
@@ -64,7 +66,7 @@ export function Task({ activity }: { activity: Activity }) {
     <div className="flex items-center rounded-md bg-slate-800 p-4">
       {canMoveLeft && (
         <button
-          onClick={() => moveTask(prevCategory as "Required" | "In_Progress")}
+          onClick={() => moveTask(prevCategory as TaskCategory)}
           disabled={isUpdating}
           className="mr-3 text-gray-400 hover:text-white disabled:opacity-50"
           aria-label="Move Left"
@@ -73,11 +75,11 @@ export function Task({ activity }: { activity: Activity }) {
         </button>
       )}
 
-      <h1 className="flex-1">{activity.title}</h1>
+      <h1 className="flex-1">{optimisticActivity.title}</h1>
 
       {canMoveRight && (
         <button
-          onClick={() => moveTask(nextCategory as "In_Progress" | "Finished")}
+          onClick={() => moveTask(nextCategory as TaskCategory)}
           disabled={isUpdating}
           className="mr-3 text-gray-400 hover:text-white disabled:opacity-50"
           aria-label="Move right"
