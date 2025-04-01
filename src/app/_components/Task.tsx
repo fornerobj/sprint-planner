@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useOptimistic } from "react";
+import { useState, useOptimistic, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { TaskCategory } from "~/server/db/schema";
 import { updateActivityCategory } from "~/server/mutations";
+import { start } from "repl";
 
 type Activity = {
   id: number;
@@ -28,7 +29,9 @@ export function Task({ activity }: { activity: Activity }) {
 
     setIsUpdating(true);
 
-    setOptimisticActivity(newCategory);
+    startTransition(() => {
+      setOptimisticActivity(newCategory);
+    });
 
     try {
       await updateActivityCategory({
@@ -39,7 +42,9 @@ export function Task({ activity }: { activity: Activity }) {
       router.refresh();
     } catch (error) {
       console.error("Error updating activity", error);
-      setOptimisticActivity(activity.category);
+      startTransition(() => {
+        setOptimisticActivity(activity.category);
+      });
     } finally {
       setIsUpdating(false);
     }
