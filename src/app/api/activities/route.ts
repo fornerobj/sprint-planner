@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { activities } from "~/server/db/schema";
+import { tasks } from "~/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 
 export async function POST(req: NextRequest) {
@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newActivity = await db
-      .insert(activities)
+    const newTask = await db
+      .insert(tasks)
       .values({
         title,
         category,
@@ -28,11 +28,11 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(newActivity[0], { status: 201 });
+    return NextResponse.json(newTask[0], { status: 201 });
   } catch (error) {
-    console.error("Error creating activity:", error);
+    console.error("Error creating task:", error);
     return NextResponse.json(
-      { error: "Failed to create activity" },
+      { error: "Failed to create task" },
       { status: 500 },
     );
   }

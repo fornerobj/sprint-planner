@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "~/server/db";
-import { activities } from "~/server/db/schema";
+import { tasks } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 
@@ -18,21 +18,18 @@ export async function PATCH(
     const params = await context.params;
     const id = parseInt(params.id);
     if (isNaN(id)) {
-      return NextResponse.json(
-        { error: "Invalid activity id" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid task id" }, { status: 400 });
     }
 
-    const existingActivity = await db
+    const existingTask = await db
       .select()
-      .from(activities)
-      .where(eq(activities.id, id))
+      .from(tasks)
+      .where(eq(tasks.id, id))
       .limit(1);
 
-    if (!existingActivity.length || existingActivity[0]?.userId !== userId) {
+    if (!existingTask.length || existingTask[0]?.userId !== userId) {
       return NextResponse.json(
-        { error: "Activity not found or unauthorized" },
+        { error: "Task not found or unauthorized" },
         { status: 404 },
       );
     }
@@ -46,17 +43,17 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid Category" }, { status: 400 });
     }
 
-    const updatedActivity = await db
-      .update(activities)
+    const updatedTask = await db
+      .update(tasks)
       .set({ category, updatedAt: new Date() })
-      .where(eq(activities.id, id))
+      .where(eq(tasks.id, id))
       .returning();
 
-    return NextResponse.json(updatedActivity[0]);
+    return NextResponse.json(updatedTask[0]);
   } catch (error) {
-    console.error("error updating activity:", error);
+    console.error("error updating task:", error);
     return NextResponse.json(
-      { error: "Failed to update activity :(" },
+      { error: "Failed to update task :(" },
       { status: 500 },
     );
   }

@@ -6,7 +6,7 @@
 - [x] Set up database
 - [x] Attach db to ui
 - [x] Add auth
-- [ ] Add activity creation
+- [ ] Add task creation
 - [ ] Error management
 - [ ] Routing/Post page
 - [ ] delete button (with server actions???)

@@ -1,15 +1,6 @@
-// Example model schema from the Drizzle docs
-// https://orm.drizzle.team/docs/sql-schema-declaration
-
-import { sql } from "drizzle-orm";
+import { sql, relations } from "drizzle-orm";
 import { index, pgTableCreator, pgEnum } from "drizzle-orm/pg-core";
 
-/**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
- */
 export const createTable = pgTableCreator((name) => `sprint-planner_${name}`);
 
 export const categoryEnum = pgEnum("category", [
@@ -17,13 +8,25 @@ export const categoryEnum = pgEnum("category", [
   "In_Progress",
   "Finished",
 ]);
-export const activities = createTable(
-  "activity",
+
+export const projects = createTable("project", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  name: d.text("name").notNull(),
+  description: d.text("description"),
+}));
+
+export const projectsRelations = relations(projects, ({ many }) => ({
+  tasks: many(tasks),
+}));
+
+export const tasks = createTable(
+  "task",
   (d) => ({
     id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
     title: d.varchar({ length: 256 }).notNull(),
     category: categoryEnum("category").notNull(),
     userId: d.varchar("userId", { length: 256 }).notNull(),
+    projectId: d.integer(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -33,4 +36,18 @@ export const activities = createTable(
   (t) => [index("title_idx").on(t.title)],
 );
 
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  project: one(projects, {
+    fields: [tasks.projectId],
+    references: [projects.id],
+  }),
+}));
+
 export type TaskCategory = "Required" | "In_Progress" | "Finished";
+export type Task = {
+  id: number;
+  title: string;
+  category: TaskCategory;
+  userId: string;
+  projectId: number;
+};

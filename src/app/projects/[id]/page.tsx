@@ -1,8 +1,9 @@
+import { Kanban } from "../_components/Kanban";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function Project({ params }: { params: { id: number } }) {
   return (
     <main className="flex min-h-screen flex-col gap-4">
       <SignedOut>
@@ -11,7 +12,7 @@ export default async function HomePage() {
         </div>
       </SignedOut>
       <SignedIn>
-        <h1>Create a project</h1>
+        <Kanban projectId={params.id} />
       </SignedIn>
     </main>
   );

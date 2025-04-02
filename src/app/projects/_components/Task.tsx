@@ -1,23 +1,21 @@
 "use client";
 
 import { useState, useOptimistic, startTransition } from "react";
-import { useRouter } from "next/navigation";
 import type { TaskCategory } from "~/server/db/schema";
-import { updateActivityCategory } from "~/server/mutations";
+import { updateTaskCategory } from "~/server/mutations";
 import { start } from "repl";
 
-type Activity = {
+type Task = {
   id: number;
   title: string;
   category: TaskCategory;
 };
 
-export function Task({ activity }: { activity: Activity }) {
+export function Task({ task }: { task: Task }) {
   const [isUpdating, setIsUpdating] = useState(false);
-  const router = useRouter();
 
-  const [optimisticActivity, setOptimisticActivity] = useOptimistic(
-    activity,
+  const [optimisticTask, setOptimisticTask] = useOptimistic(
+    task,
     (state, newCategory: TaskCategory) => ({
       ...state,
       category: newCategory,
@@ -25,45 +23,43 @@ export function Task({ activity }: { activity: Activity }) {
   );
 
   const moveTask = async (newCategory: TaskCategory) => {
-    if (newCategory === optimisticActivity.category || isUpdating) return;
+    if (newCategory === optimisticTask.category || isUpdating) return;
 
     setIsUpdating(true);
 
     startTransition(() => {
-      setOptimisticActivity(newCategory);
+      setOptimisticTask(newCategory);
     });
 
     try {
-      await updateActivityCategory({
-        id: activity.id,
+      await updateTaskCategory({
+        id: task.id,
         newCategory,
       });
-
-      router.refresh();
     } catch (error) {
-      console.error("Error updating activity", error);
+      console.error("Error updating task", error);
       startTransition(() => {
-        setOptimisticActivity(activity.category);
+        setOptimisticTask(task.category);
       });
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const canMoveLeft = optimisticActivity.category !== "Required";
-  const canMoveRight = optimisticActivity.category !== "Finished";
+  const canMoveLeft = optimisticTask.category !== "Required";
+  const canMoveRight = optimisticTask.category !== "Finished";
 
   const prevCategory =
-    optimisticActivity.category === "In_Progress"
+    optimisticTask.category === "In_Progress"
       ? "Required"
-      : optimisticActivity.category === "Finished"
+      : optimisticTask.category === "Finished"
         ? "In_Progress"
         : null;
 
   const nextCategory =
-    optimisticActivity.category === "Required"
+    optimisticTask.category === "Required"
       ? "In_Progress"
-      : optimisticActivity.category === "In_Progress"
+      : optimisticTask.category === "In_Progress"
         ? "Finished"
         : null;
 
@@ -80,7 +76,7 @@ export function Task({ activity }: { activity: Activity }) {
         </button>
       )}
 
-      <h1 className="flex-1">{optimisticActivity.title}</h1>
+      <h1 className="flex-1">{optimisticTask.title}</h1>
 
       {canMoveRight && (
         <button
