@@ -3,7 +3,12 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 
 export const dynamic = "force-dynamic";
 
-export default async function Project({ params }: { params: { id: number } }) {
+export default async function Project({
+  params,
+}: {
+  params: Promise<{ id: number }>;
+}) {
+  const { id } = await params;
   return (
     <main className="flex min-h-screen flex-col gap-4">
       <SignedOut>
@@ -12,7 +17,7 @@ export default async function Project({ params }: { params: { id: number } }) {
         </div>
       </SignedOut>
       <SignedIn>
-        <Kanban projectId={params.id} />
+        <Kanban projectId={id} />
       </SignedIn>
     </main>
   );
