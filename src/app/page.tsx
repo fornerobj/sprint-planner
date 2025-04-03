@@ -21,18 +21,13 @@ export default async function HomePage() {
     );
   }
   const projects = await getProjectsByTeamMember();
-  const projectsWithMembers = await Promise.all(
-    projects.map(async (project) => {
-      const members = await getTeamMembers({ projectId: project.id });
-      return { ...project, members };
-    }),
-  );
+
   return (
     <main className="h-full p-8">
       <SignedIn>
         {/* Project List*/}
         <div className="h-full rounded-md">
-          <ProjectList projects={projectsWithMembers} />
+          <ProjectList projects={projects} />
         </div>
       </SignedIn>
     </main>
