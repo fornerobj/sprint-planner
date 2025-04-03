@@ -7,18 +7,21 @@ import type { Project } from "~/server/db/schema";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const user = await auth();
-  const projects: Project[] = [];
-  if (user) {
-    const projects = await getProjectsByTeamMember();
-  }
-  return (
-    <main className="h-full p-8">
-      <SignedOut>
+  const { userId } = await auth();
+
+  // If no user is signed in, render the SignedOut view
+  if (!userId) {
+    return (
+      <main className="h-full p-8">
         <div className="h-full w-full text-center text-2xl">
           Please Sign In Above
         </div>
-      </SignedOut>
+      </main>
+    );
+  }
+  const projects = await getProjectsByTeamMember();
+  return (
+    <main className="h-full p-8">
       <SignedIn>
         {/* Project List*/}
         <div className="h-full rounded-md">
