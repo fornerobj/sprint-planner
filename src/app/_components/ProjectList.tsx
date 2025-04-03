@@ -30,9 +30,15 @@ export function ProjectList({ projects }: { projects: Project[] }) {
         </div>
       </div>
       {selectedProject && (
-        <div className="flex-1 rounded-lg bg-slate-800 p-4">
+        <div className="flex flex-1 flex-col items-start rounded-lg bg-slate-800 p-4">
           <h1 className="text-3xl">{selectedProject.name}</h1>
-          <h2>{selectedProject.description}</h2>
+          <h2 className="text-xl">{selectedProject.description}</h2>
+          <button
+            className="text-xl hover:cursor-pointer hover:text-blue-500"
+            onClick={() => redirect(`/projects/${selectedProject.id}`)}
+          >
+            Go to project
+          </button>
         </div>
       )}
     </div>

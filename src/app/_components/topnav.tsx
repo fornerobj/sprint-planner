@@ -6,7 +6,9 @@ export function TopNav() {
       <div>Sprint Planner</div>
       <div>
         <SignedOut>
-          <SignInButton />
+          <SignInButton>
+            <button className="hover:cursor-pointer">Sign In</button>
+          </SignInButton>
         </SignedOut>
         <SignedIn>
           <UserButton />
