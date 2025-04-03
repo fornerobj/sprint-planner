@@ -30,6 +30,11 @@ export async function createProject(props: {
     .returning();
   if (!newProject) throw new Error("Failed to create new Project");
 
+  await db.insert(projectMembers).values({
+    userId: user.userId,
+    projectId: newProject[0]!.id,
+  });
+
   return { sucess: true };
 }
 
