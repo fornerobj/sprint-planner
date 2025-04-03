@@ -20,7 +20,7 @@ export async function createProject(props: {
   if (!props.name) throw new Error("Name Missing");
   if (!props.description) throw new Error("Description Missing");
 
-  const newProject = await db
+  const [newProject] = await db
     .insert(projects)
     .values({
       name: props.name,
@@ -30,12 +30,39 @@ export async function createProject(props: {
     .returning();
   if (!newProject) throw new Error("Failed to create new Project");
 
-  await db.insert(projectMembers).values({
-    userId: user.userId,
-    projectId: newProject[0]!.id,
-  });
+  const [teamMember] = await db
+    .insert(projectMembers)
+    .values({
+      userId: user.userId,
+      projectId: newProject.id,
+    })
+    .returning();
+  if (!teamMember) {
+    await db.delete(projects).where(eq(projects.id, newProject.id));
+    throw new Error("Failed to create teamMember. Aborting.");
+  }
 
   return { sucess: true };
+}
+
+export async function deleteProject({ id }: { id: number }) {
+  const user = await auth();
+
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const project = await getProjectById({ id: id });
+  if (!project) throw new Error("Project does not exist");
+
+  if (user.userId !== project.ownerId) throw new Error("Unauthorized");
+
+  await db
+    .delete(projects)
+    .where(eq(projects.id, id))
+    .catch((e) => {
+      throw new Error("Error: ", e);
+    });
+  revalidatePath("/");
+  return { success: true };
 }
 
 export async function createTask(props: {

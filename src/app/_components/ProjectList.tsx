@@ -8,6 +8,7 @@ import type { TeamMember } from "~/server/queries";
 import { LoadingSpinner } from "../_utils/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import { CreateProject } from "./CreateProject";
+import { deleteProject } from "~/server/mutations";
 
 export function ProjectList({
   projects,
@@ -96,7 +97,18 @@ export function ProjectList({
 
       {selectedProject && (
         <div className="flex flex-1 flex-col items-start rounded-lg bg-slate-800 p-4">
-          <h1 className="text-3xl">{selectedProject.name}</h1>
+          <div className="flex">
+            <h1 className="text-3xl">{selectedProject.name}</h1>
+            <button
+              onClick={() => {
+                deleteProject({ id: selectedProject.id });
+                setSelectedProject(null);
+              }}
+              className="justify-end hover:cursor-pointer"
+            >
+              Delete
+            </button>
+          </div>
           <h2 className="text-xl">{selectedProject.description}</h2>
 
           {loading ? (
