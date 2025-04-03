@@ -31,7 +31,7 @@ export default async function HomePage() {
         </div>
         {/* Project List*/}
         <div className="h-full rounded-md">
-          <ProjectList projects={projects} />
+          <ProjectList projects={projects} userId={userId} />
         </div>
       </SignedIn>
     </main>
