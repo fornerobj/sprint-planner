@@ -1,5 +1,6 @@
 import { sql, relations } from "drizzle-orm";
 import { index, pgTableCreator, pgEnum } from "drizzle-orm/pg-core";
+import type { InferSelectModel, InferColumnsDataTypes } from "drizzle-orm";
 
 export const createTable = pgTableCreator((name) => `sprint-planner_${name}`);
 
@@ -67,10 +68,5 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 }));
 
 export type TaskCategory = "Required" | "In_Progress" | "Finished";
-export type Task = {
-  id: number;
-  title: string;
-  category: TaskCategory;
-  userId: string;
-  projectId: number;
-};
+export type Task = typeof tasks.$inferSelect;
+export type Project = typeof projects.$inferSelect;

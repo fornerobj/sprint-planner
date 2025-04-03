@@ -1,11 +1,13 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ProjectList } from "./_components/ProjectList";
+import { getProjectsByTeamMember } from "~/server/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
+  const projects = await getProjectsByTeamMember();
   return (
-    <main className="flex h-full flex-col bg-white p-8">
+    <main className="h-full p-8">
       <SignedOut>
         <div className="h-full w-full text-center text-2xl">
           Please Sign In Above
@@ -13,8 +15,8 @@ export default async function HomePage() {
       </SignedOut>
       <SignedIn>
         {/* Project List*/}
-        <div className="h-full w-1/3 rounded-md bg-slate-800">
-          <ProjectList />
+        <div className="h-full rounded-md">
+          <ProjectList projects={projects} />
         </div>
       </SignedIn>
     </main>

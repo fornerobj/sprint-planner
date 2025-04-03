@@ -21,10 +21,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${geist.variable}`}>
-        <body>
+      <html lang="en" className={`${geist.variable} h-full`}>
+        <body className="flex h-full flex-col">
           <TopNav />
-          {children}
+          <div className="flex-1">{children}</div>
         </body>
       </html>
     </ClerkProvider>
