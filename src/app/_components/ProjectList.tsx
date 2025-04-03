@@ -13,21 +13,23 @@ export function ProjectList({ projects }: { projects: Project[] }) {
       <div className="flex w-1/4 flex-col gap-4 rounded-lg bg-slate-800 text-center text-2xl">
         <div className="p-4">
           <h1 className="pb-2 text-3xl underline">Your projects</h1>
-          {projects.map((project) => (
-            <button
-              key={project.id!}
-              onClick={() => {
-                if (selectedProject !== project) {
-                  setSelectedProject(project);
-                } else {
-                  redirect(`/projects/${project.id}`);
-                }
-              }}
-              className="hover:cursor-pointer hover:text-blue-500"
-            >
-              {project.name}
-            </button>
-          ))}
+          <div className="flex flex-col">
+            {projects.map((project) => (
+              <button
+                key={project.id!}
+                onClick={() => {
+                  if (selectedProject !== project) {
+                    setSelectedProject(project);
+                  } else {
+                    redirect(`/projects/${project.id}`);
+                  }
+                }}
+                className="hover:cursor-pointer hover:text-blue-500"
+              >
+                {project.name}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {selectedProject && <ProjectDetails project={selectedProject} />}

@@ -13,13 +13,6 @@ export async function ProjectDetails({ project }: { project: Project }) {
       {members.map((member) => (
         <h1 key={member.id}>{member.name}</h1>
       ))}
-
-      <button
-        className="text-xl hover:cursor-pointer hover:text-blue-500"
-        onClick={() => redirect(`/projects/${project.id}`)}
-      >
-        Go to project
-      </button>
     </div>
   );
 }
