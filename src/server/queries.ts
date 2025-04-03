@@ -1,8 +1,8 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, exists, and, or } from "drizzle-orm";
 import { db } from "~/server/db";
-import { tasks } from "~/server/db/schema";
+import { projectMembers, tasks } from "~/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 
 export async function getMytasks() {
@@ -38,4 +38,32 @@ export async function getProjectById({ id }: { id: number }) {
   });
 
   return project;
+}
+
+export async function getProjectsByTeamMember() {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const projects = await db.query.projects.findMany({
+    where: (model, { eq, or }) =>
+      or(
+        eq(model.ownerId, user.userId),
+        exists(
+          db
+            .select()
+            .from(projectMembers)
+            .where(
+              and(
+                eq(projectMembers.projectId, model.id),
+                eq(projectMembers.userId, user.userId),
+              ),
+            ),
+        ),
+      ),
+    with: {
+      tasks: true,
+    },
+  });
+
+  return projects;
 }

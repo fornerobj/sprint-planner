@@ -11,12 +11,35 @@ export const categoryEnum = pgEnum("category", [
 
 export const projects = createTable("project", (d) => ({
   id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  ownerId: d.varchar("userId", { length: 256 }),
   name: d.text("name").notNull(),
   description: d.text("description"),
 }));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
+  members: many(projectMembers),
+}));
+
+export const projectMembers = createTable("project_member", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  projectId: d
+    .integer()
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  userId: d.varchar("userId", { length: 256 }).notNull(), // Clerk user ID
+  //role: d.varchar({ length: 50 }).default("member").notNull(), // Optional: for role-based permissions
+  addedAt: d
+    .timestamp({ withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+}));
+
+export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectMembers.projectId],
+    references: [projects.id],
+  }),
 }));
 
 export const tasks = createTable(
