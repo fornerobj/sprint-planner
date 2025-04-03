@@ -2,7 +2,6 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ProjectList } from "./_components/ProjectList";
 import { getProjectsByTeamMember } from "~/server/queries";
 import { auth } from "@clerk/nextjs/server";
-import { CreateProject } from "./_components/CreateProject";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +24,6 @@ export default async function HomePage() {
   return (
     <main className="h-full p-8">
       <SignedIn>
-        {/* Add create project button */}
-        <div className="mb-4 flex justify-end">
-          <CreateProject />
-        </div>
         {/* Project List*/}
         <div className="h-full rounded-md">
           <ProjectList projects={projects} userId={userId} />

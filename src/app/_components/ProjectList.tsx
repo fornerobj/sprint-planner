@@ -7,6 +7,7 @@ import { getTeamMembers } from "~/server/queries";
 import type { TeamMember } from "~/server/queries";
 import { LoadingSpinner } from "../_utils/LoadingSpinner";
 import { useRouter } from "next/navigation";
+import { CreateProject } from "./CreateProject";
 
 export function ProjectList({
   projects,
@@ -64,7 +65,10 @@ export function ProjectList({
     <div className="flex gap-4">
       <div className="flex w-1/4 flex-col gap-4 rounded-lg bg-slate-800 text-center text-2xl">
         <div className="p-4">
-          <h1 className="pb-2 text-3xl underline">Your projects</h1>
+          <div className="flex justify-around pb-4">
+            <h1 className="pb-2 text-3xl underline">Your projects</h1>
+            <CreateProject />
+          </div>
           <div className="flex flex-col">
             {projects.map((project) => (
               <div key={project.id} className="flex justify-around">
@@ -77,7 +81,7 @@ export function ProjectList({
                       router.push(`/projects/${selectedProject.id}`);
                     }
                   }}
-                  className={`hover:cursor-pointer hover:text-blue-500 ${
+                  className={`w-3/4 truncate hover:cursor-pointer hover:text-blue-500 ${
                     selectedProject?.id === project.id ? "text-blue-500" : ""
                   }`}
                 >
