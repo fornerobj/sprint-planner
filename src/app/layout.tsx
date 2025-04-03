@@ -24,7 +24,9 @@ export default function RootLayout({
       <html lang="en" className={`${geist.variable} h-full`}>
         <body className="flex h-full flex-col">
           <TopNav />
-          <div className="flex-1">{children}</div>
+          <div className="flex-1" style={{ maxHeight: "calc(100vh - 80px)" }}>
+            {children}
+          </div>
         </body>
       </html>
     </ClerkProvider>

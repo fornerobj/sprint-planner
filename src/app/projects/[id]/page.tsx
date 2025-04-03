@@ -10,7 +10,7 @@ export default async function Project({
 }) {
   const { id } = await params;
   return (
-    <main className="flex min-h-screen flex-col gap-4">
+    <main className="flex h-full max-h-fit flex-col gap-4">
       <SignedOut>
         <div className="h-full w-full text-center text-2xl">
           Please Sign In Above

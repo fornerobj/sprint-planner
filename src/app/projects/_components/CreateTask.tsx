@@ -21,7 +21,13 @@ function SubmitButton() {
     </svg>
   );
 }
-export function CreateTask({ category }: { category: TaskCategory }) {
+export function CreateTask({
+  category,
+  projectId,
+}: {
+  category: TaskCategory;
+  projectId: number;
+}) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +36,7 @@ export function CreateTask({ category }: { category: TaskCategory }) {
     try {
       setIsSubmitting(true);
       setError(null);
-      await createTask({ content, category });
+      await createTask({ content, category, projectId });
       setContent("");
       console.log("Task created");
     } catch (error) {
