@@ -3,7 +3,7 @@ import "server-only";
 import { eq, exists, and, or } from "drizzle-orm";
 import { db } from "~/server/db";
 import { projectMembers, tasks } from "~/server/db/schema";
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function getMytasks() {
   const user = await auth();
@@ -67,3 +67,35 @@ export async function getProjectsByTeamMember() {
 
   return projects;
 }
+
+export async function getTeamMembers({ projectId }: { projectId: number }) {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const { data } = await (await clerkClient()).users.getUserList();
+  const projectTeamMembers = await db.query.projectMembers.findMany({
+    where: (model, { eq }) => eq(model.projectId, projectId),
+  });
+
+  const teamMembersRaw = data.filter((member) =>
+    projectTeamMembers.some(
+      (projectMember) => projectMember.userId === member.id,
+    ),
+  );
+
+  const teamMembers = teamMembersRaw?.map((user) => ({
+    id: user.id,
+    name: `${user.firstName} ${user.lastName}`,
+    email: user.emailAddresses[0]?.emailAddress,
+    avatar: user.imageUrl,
+  }));
+
+  return teamMembers;
+}
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string | undefined;
+  avatar: string;
+};

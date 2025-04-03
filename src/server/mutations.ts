@@ -3,10 +3,12 @@ import "server-only";
 
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db";
-import { projects, tasks } from "~/server/db/schema";
+import { projects, tasks, projectMembers } from "~/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import type { TaskCategory } from "~/server/db/schema";
 import { revalidatePath } from "next/cache";
+import { clerkClient } from "@clerk/nextjs/server";
+import { getProjectById } from "./queries";
 
 export async function createProject(props: {
   name: string;
@@ -24,6 +26,7 @@ export async function createProject(props: {
     .values({
       name: props.name,
       description: props.description,
+      ownerId: user.userId,
     })
     .returning();
   if (!newProject) throw new Error("Failed to create new Project");
@@ -103,6 +106,45 @@ export async function updateTaskCategory(props: {
     .where(eq(tasks.id, props.id));
 
   revalidatePath("/");
+
+  return { success: true };
+}
+
+export async function addTeamMember({
+  projectId,
+  userEmail,
+}: {
+  projectId: number;
+  userEmail: string;
+}) {
+  const currentUser = await auth();
+  if (!currentUser.userId) throw new Error("Unauthorized");
+
+  const project = await getProjectById({ id: projectId });
+  if (!project) throw new Error("Project does not exist");
+
+  if (project.ownerId !== currentUser.userId) {
+    throw new Error("You dont own this project");
+  }
+
+  const users = (
+    await (
+      await clerkClient()
+    ).users.getUserList({
+      emailAddress: [userEmail],
+    })
+  ).data;
+
+  if (users.length === 0) {
+    throw new Error("No user with that email is signed up yet");
+  }
+
+  const userId = users[0]!.id;
+
+  await db.insert(projectMembers).values({
+    projectId: projectId,
+    userId: userId,
+  });
 
   return { success: true };
 }
