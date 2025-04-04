@@ -3,45 +3,26 @@
 import { useState, useEffect } from "react";
 import { redirect } from "next/navigation";
 import type { Project } from "~/server/db/schema";
-import { getTeamMembers } from "~/server/queries";
 import type { TeamMember } from "~/server/queries";
 import { LoadingSpinner } from "../_utils/LoadingSpinner";
 import { useRouter } from "next/navigation";
 import { CreateProject } from "./CreateProject";
 import { deleteProject } from "~/server/mutations";
 
+type ProjectWithTeamMembers = Project & {
+  teamMembers: TeamMember[];
+};
+
 export function ProjectList({
   projects,
   userId,
 }: {
-  projects: Project[];
+  projects: ProjectWithTeamMembers[];
   userId: string;
 }) {
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [selectedProject, setSelectedProject] =
+    useState<ProjectWithTeamMembers | null>(null);
   const router = useRouter();
-
-  // Fetch team members when a project is selected
-  useEffect(() => {
-    if (selectedProject) {
-      fetchTeamMembers(selectedProject.id);
-    } else {
-      setTeamMembers([]);
-    }
-  }, [selectedProject]);
-
-  const fetchTeamMembers = async (projectId: number) => {
-    setLoading(true);
-    try {
-      const members = await getTeamMembers({ projectId });
-      setTeamMembers(members);
-    } catch (error) {
-      console.error("Error fetching team members:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   function Star() {
     return (
@@ -111,12 +92,10 @@ export function ProjectList({
           </div>
           <h2 className="text-xl">{selectedProject.description}</h2>
 
-          {loading ? (
-            <LoadingSpinner />
-          ) : teamMembers.length > 0 ? (
+          {selectedProject.teamMembers.length > 0 ? (
             <>
               <h2 className="mt-4 text-xl">Team members:</h2>
-              {teamMembers.map((member) => (
+              {selectedProject.teamMembers.map((member) => (
                 <h1 key={member.id}>{member.name}</h1>
               ))}
             </>

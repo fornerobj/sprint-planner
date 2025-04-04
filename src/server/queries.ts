@@ -1,4 +1,5 @@
 "use server";
+import "server-only";
 
 import { eq, exists, and, or } from "drizzle-orm";
 import { db } from "~/server/db";
@@ -72,18 +73,16 @@ export async function getTeamMembers({ projectId }: { projectId: number }) {
   const user = await auth();
   if (!user.userId) throw new Error("Unauthorized");
 
-  const { data } = await (await clerkClient()).users.getUserList();
   const projectTeamMembers = await db.query.projectMembers.findMany({
     where: (model, { eq }) => eq(model.projectId, projectId),
   });
 
-  const teamMembersRaw = data.filter((member) =>
-    projectTeamMembers.some(
-      (projectMember) => projectMember.userId === member.id,
-    ),
-  );
+  const teamMemberIds = projectTeamMembers.map((member) => member.userId);
+  const { data } = await (
+    await clerkClient()
+  ).users.getUserList({ userId: teamMemberIds });
 
-  const teamMembers = teamMembersRaw?.map((user) => ({
+  const teamMembers = data.map((user) => ({
     id: user.id,
     name: `${user.firstName} ${user.lastName}`,
     email: user.emailAddresses[0]?.emailAddress,

@@ -1,6 +1,6 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ProjectList } from "./_components/ProjectList";
-import { getProjectsByTeamMember } from "~/server/queries";
+import { getProjectsByTeamMember, getTeamMembers } from "~/server/queries";
 import { auth } from "@clerk/nextjs/server";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const { userId } = await auth();
 
-  // If no user is signed in, render the SignedOut view
   if (!userId) {
     return (
       <main className="h-full p-8">
@@ -21,12 +20,22 @@ export default async function HomePage() {
 
   const projects = await getProjectsByTeamMember();
 
+  const projectsWithTeamMembers = await Promise.all(
+    projects.map(async (project) => {
+      const teamMembers = await getTeamMembers({ projectId: project.id });
+      return {
+        ...project,
+        teamMembers,
+      };
+    }),
+  );
+
   return (
     <main className="h-full p-8">
       <SignedIn>
         {/* Project List*/}
         <div className="h-full rounded-md">
-          <ProjectList projects={projects} userId={userId} />
+          <ProjectList projects={projectsWithTeamMembers} userId={userId} />
         </div>
       </SignedIn>
     </main>
