@@ -25,7 +25,7 @@ export default async function HomePage() {
       const teamMembers = await getTeamMembers({ projectId: project.id });
       return {
         ...project,
-        teamMembers,
+        members: teamMembers,
       };
     }),
   );
