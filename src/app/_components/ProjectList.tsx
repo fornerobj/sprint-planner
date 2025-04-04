@@ -77,41 +77,40 @@ export function ProjectList({
       </div>
 
       {selectedProject && (
-        <div className="flex flex-1 flex-col items-start rounded-lg bg-slate-800 p-4">
-          <div className="flex">
-            <h1 className="text-3xl">{selectedProject.name}</h1>
+        <div className="flex flex-1 flex-col items-start gap-4 rounded-lg bg-slate-800 p-4">
+          <h1 className="text-3xl">{selectedProject.name}</h1>
+          <h2 className="text-xl">{selectedProject.description}</h2>
+          {selectedProject.teamMembers.length > 0 ? (
+            <div>
+              <h2 className="text-xl">Team members:</h2>
+              {selectedProject.teamMembers.map((member) => (
+                <h1 key={member.id}>{member.name}</h1>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl">Team members:</h2>
+              <h2>No team members yet</h2>
+            </div>
+          )}
+
+          <div className="flex gap-4">
+            <button
+              onClick={() => router.push(`/projects/${selectedProject.id}`)}
+              className="rounded bg-blue-600 px-4 py-2 hover:cursor-pointer hover:bg-blue-700"
+            >
+              Open Project Board
+            </button>
             <button
               onClick={() => {
                 deleteProject({ id: selectedProject.id });
                 setSelectedProject(null);
               }}
-              className="justify-end hover:cursor-pointer"
+              className="rounded bg-red-600 px-4 py-2 hover:cursor-pointer hover:bg-red-700"
             >
               Delete
             </button>
           </div>
-          <h2 className="text-xl">{selectedProject.description}</h2>
-
-          {selectedProject.teamMembers.length > 0 ? (
-            <>
-              <h2 className="mt-4 text-xl">Team members:</h2>
-              {selectedProject.teamMembers.map((member) => (
-                <h1 key={member.id}>{member.name}</h1>
-              ))}
-            </>
-          ) : (
-            <>
-              <h2 className="mt-4 text-xl">Team members:</h2>
-              <h2>No team members yet</h2>
-            </>
-          )}
-
-          <button
-            onClick={() => router.push(`/projects/${selectedProject.id}`)}
-            className="mt-6 rounded bg-blue-600 px-4 py-2 hover:bg-blue-700"
-          >
-            Open Project Board
-          </button>
         </div>
       )}
     </div>
