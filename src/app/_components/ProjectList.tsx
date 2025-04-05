@@ -62,7 +62,7 @@ export function ProjectList({
                     if (selectedProject?.id !== project.id) {
                       setSelectedProject(project);
                     } else {
-                      router.push(`/projects/${selectedProject.id}`);
+                      setSelectedProject(null);
                     }
                   }}
                   className={`w-3/4 truncate hover:cursor-pointer hover:text-blue-500 ${

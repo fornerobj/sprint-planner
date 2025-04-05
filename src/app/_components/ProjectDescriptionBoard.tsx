@@ -53,14 +53,14 @@ export default function ProjectDescriptionBoard({
           onClick={() => router.push(`/projects/${project.id}`)}
           className="rounded bg-blue-600 px-4 py-2 hover:cursor-pointer hover:bg-blue-700"
         >
-          Open Project Board
+          Open Project
         </button>
         <button
           onClick={handleDeleteProject}
           disabled={isDeleting}
           className="rounded bg-red-600 px-4 py-2 hover:cursor-pointer hover:bg-red-700 disabled:opacity-50"
         >
-          {isDeleting ? "Deleting..." : "Delete"}
+          {isDeleting ? "Deleting..." : "Delete Project"}
         </button>
       </div>
     </div>
