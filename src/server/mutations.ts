@@ -7,7 +7,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { TaskCategory } from "~/server/db/schema";
 import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getProjectById } from "./queries";
+import { getProjectById, getTaskById } from "./queries";
 
 export async function createProject(props: {
   name: string;
@@ -100,6 +100,20 @@ export async function createTask(props: {
   if (!newTask) throw new Error("No new task, or unauthorized");
 
   revalidatePath("/");
+  return { success: true };
+}
+
+export async function deleteTask({ id }: { id: number }) {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const taskToDelete = await getTaskById({ id });
+  if (!taskToDelete) throw new Error("Task does not exist");
+
+  await db.delete(tasks).where(eq(tasks.id, id));
+
+  revalidatePath(`/projects/${id}`);
+
   return { success: true };
 }
 

@@ -30,6 +30,19 @@ export async function getProjectTasks({ projectId }: { projectId: number }) {
   return tasks;
 }
 
+export async function getTaskById({ id }: { id: number }) {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  const task = await db.query.tasks.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+
+  if (!task) throw new Error("No task exists with that ID");
+
+  return task;
+}
+
 export async function getProjectById({ id }: { id: number }) {
   const user = await auth();
   if (!user.userId) throw new Error("Unauthorized");
