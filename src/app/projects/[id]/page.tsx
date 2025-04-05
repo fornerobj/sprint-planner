@@ -19,8 +19,10 @@ export default async function Project({
       </SignedOut>
       <SignedIn>
         <div className="flex h-full max-h-fit">
-          <SideNav />
-          <div className="flex-1">
+          <div className="pt-4 pl-4">
+            <SideNav />
+          </div>
+          <div className="flex-1 p-4">
             <Kanban projectId={id} />
           </div>
         </div>

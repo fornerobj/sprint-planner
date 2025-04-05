@@ -51,7 +51,7 @@ export function CreateProject() {
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-white"
               >
-                <PlusSignSymbol />
+                <PlusSignWithCirlce />
               </button>
             </div>
 

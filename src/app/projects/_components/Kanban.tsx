@@ -15,8 +15,8 @@ export async function Kanban({ projectId }: { projectId: number }) {
   const finished = tasks.filter((task) => task.category === "Finished");
 
   return (
-    <div className="flex h-full flex-col gap-6 overflow-hidden p-4">
-      <h2 className="text-xl font-bold">{project.name}</h2>
+    <div className="flex h-full flex-col gap-6 overflow-hidden py-4 pr-4">
+      <h2 className="pl-6 text-3xl font-bold">{project.name}</h2>
       <div className="flex max-h-full flex-1 overflow-hidden text-center">
         <div className="flex max-h-full flex-1 flex-col gap-4 p-4">
           <h1 className="text-2xl font-bold">Required</h1>

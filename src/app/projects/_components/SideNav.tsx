@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Hamburger } from "~/app/_utils/Icons";
 
 export function SideNav() {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div
@@ -18,19 +18,21 @@ export function SideNav() {
         }}
         className="hover:cursor-pointer"
       >
-        <Hamburger />
+        <Hamburger size="8" />
       </button>
       <ul
         className={`mt-6 ${isOpen ? "opacity-100" : "hidden opacity-0"} transition-opacity duration-300 ease-in-out`}
       >
         <li className="whitespace-nowrap">
-          <a>Project Board</a>
+          <a className="hover:cursor-pointer hover:text-blue-500">
+            Project Board
+          </a>
         </li>
         <li>
-          <a>Reports</a>
+          <a className="hover:cursor-pointer hover:text-blue-500">Reports</a>
         </li>
         <li>
-          <a>Settings</a>
+          <a className="hover:cursor-pointer hover:text-blue-500">Settings</a>
         </li>
       </ul>
     </div>
