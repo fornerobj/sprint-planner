@@ -1,5 +1,6 @@
 import { Kanban } from "../_components/Kanban";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SideNav } from "../_components/SideNav";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,14 @@ export default async function Project({
         </div>
       </SignedOut>
       <SignedIn>
-        <Kanban projectId={id} />
+        <div className="flex">
+          <div className="w-1/6 bg-zinc-900">
+            <SideNav />
+          </div>
+          <div className="flex-1">
+            <Kanban projectId={id} />
+          </div>
+        </div>
       </SignedIn>
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createProject } from "~/server/mutations";
+import { PlusSignWithCirlce } from "../_utils/Icons";
 
 export function CreateProject() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,25 +10,6 @@ export function CreateProject() {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function PlusSignSymbol() {
-    return (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        strokeWidth={1.5}
-        stroke="currentColor"
-        className="size-6"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-        />
-      </svg>
-    );
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +39,7 @@ export function CreateProject() {
         className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
         aria-label="Create new project"
       >
-        <PlusSignSymbol />
+        <PlusSignWithCirlce />
       </button>
 
       {isOpen && (
