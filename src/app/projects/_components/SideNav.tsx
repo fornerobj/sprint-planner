@@ -54,7 +54,9 @@ export function SideNav({ projectId }: { projectId: number }) {
           </button>
         </li>
         <li className="whitespace-nowrap">
-          <Link href={"/"}>Return home</Link>
+          <Link className="hover:cursor-pointer hover:text-blue-500" href={"/"}>
+            Return home
+          </Link>
         </li>
       </ul>
     </div>
