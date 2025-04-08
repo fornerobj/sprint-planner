@@ -1,10 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Hamburger } from "~/app/_utils/Icons";
 
-export function SideNav() {
+export function SideNav({ projectId }: { projectId: number }) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get("view") || "board";
+
+  const navigateTo = (view: string) => {
+    router.push(`/projects/${projectId}?view=${view}`);
+  };
 
   return (
     <div
@@ -24,15 +33,28 @@ export function SideNav() {
         className={`mt-6 ${isOpen ? "opacity-100" : "hidden opacity-0"} transition-opacity duration-300 ease-in-out`}
       >
         <li className="whitespace-nowrap">
-          <a className="hover:cursor-pointer hover:text-blue-500">
+          <button
+            className="hover:cursor-pointer hover:text-blue-500"
+            onClick={() => navigateTo("board")}
+          >
             Project Board
-          </a>
+          </button>
         </li>
         <li>
-          <a className="hover:cursor-pointer hover:text-blue-500">Reports</a>
+          <button className="hover:cursor-pointer hover:text-blue-500">
+            Reports
+          </button>
         </li>
         <li>
-          <a className="hover:cursor-pointer hover:text-blue-500">Settings</a>
+          <button
+            className="hover:cursor-pointer hover:text-blue-500"
+            onClick={() => navigateTo("settings")}
+          >
+            Settings
+          </button>
+        </li>
+        <li>
+          <Link href={"/"}>Return home</Link>
         </li>
       </ul>
     </div>

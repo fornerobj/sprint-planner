@@ -50,7 +50,7 @@ export const tasks = createTable(
     title: d.varchar({ length: 256 }).notNull(),
     category: categoryEnum("category").notNull(),
     userId: d.varchar("userId", { length: 256 }).notNull(),
-    projectId: d.integer(),
+    projectId: d.integer().notNull(),
     createdAt: d
       .timestamp({ withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)

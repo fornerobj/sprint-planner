@@ -7,13 +7,13 @@ import { auth } from "@clerk/nextjs/server";
 import type { TaskCategory } from "~/server/db/schema";
 import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getProjectById, getTaskById } from "./queries";
+import { getProjectById, getTaskById, getTeamMembers } from "./queries";
+import { string } from "zod";
 
 export async function createProject(props: {
   name: string;
   description: string | null;
 }) {
-  "use server";
   const user = await auth();
 
   if (!user.userId) throw new Error("Unauthorized");
@@ -65,12 +65,49 @@ export async function deleteProject({ id }: { id: number }) {
   return { success: true };
 }
 
+export async function updateProject({
+  id,
+  name,
+  description,
+}: {
+  id: number;
+  name?: string | null;
+  description?: string | null;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const projectToUpdate = await db.query.projects.findFirst({
+    where: (model, { eq }) => eq(model.id, id),
+  });
+
+  if (!projectToUpdate) throw new Error("Project does not exist");
+  if (projectToUpdate.ownerId !== userId)
+    throw new Error("You do not own this project");
+
+  const updateData: Record<string, string> = {};
+
+  if (name !== undefined && name !== null) {
+    updateData.name = name;
+  }
+  if (description !== undefined && description !== null) {
+    updateData.description = description;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new Error("Noting was passed to update");
+  }
+
+  await db.update(projects).set(updateData).where(eq(projects.id, id));
+
+  revalidatePath(`/projects/${id}`);
+}
+
 export async function createTask(props: {
   content: string;
   category: TaskCategory;
   projectId: number;
 }) {
-  "use server";
   const user = await auth();
 
   if (!user.userId) throw new Error("Unauthorized");
@@ -121,8 +158,6 @@ export async function updateTaskCategory(props: {
   id: number;
   newCategory: TaskCategory;
 }) {
-  "use server";
-  console.log("Creating...");
   const user = await auth();
 
   if (!user.userId) throw new Error("Unauthorized");
@@ -140,6 +175,17 @@ export async function updateTaskCategory(props: {
 
   if (!task) {
     throw new Error("Task not found, or unauthorized");
+  }
+
+  const projOfTask = await db.query.projects.findFirst({
+    where: (model, { eq }) => eq(model.id, task.projectId),
+  });
+
+  if (!projOfTask) throw new Error("That task has no assigned project");
+
+  const team = await getTeamMembers({ projectId: projOfTask.id });
+  if (!team.some((teammate) => teammate.id === user.userId)) {
+    throw new Error("You are not on this team");
   }
 
   await db
