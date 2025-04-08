@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 import { projects, tasks, projectMembers } from "~/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import type { TaskCategory } from "~/server/db/schema";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { getProjectById, getTaskById, getTeamMembers } from "./queries";
 import { string } from "zod";
@@ -218,13 +218,10 @@ export async function addTeamMember({
     throw new Error("You dont own this project");
   }
 
-  const users = (
-    await (
-      await clerkClient()
-    ).users.getUserList({
-      emailAddress: [userEmail],
-    })
-  ).data;
+  const emailAddress = [userEmail];
+
+  const cc = await clerkClient();
+  const { data: users } = await cc.users.getUserList({ emailAddress });
 
   if (users.length === 0) {
     throw new Error("No user with that email is signed up yet");
@@ -237,5 +234,43 @@ export async function addTeamMember({
     userId: userId,
   });
 
+  revalidatePath(`/projects`);
   return { success: true };
+}
+
+export async function deleteTeamMember({
+  id,
+  projectId,
+}: {
+  id: string;
+  projectId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  if (userId === id) throw new Error("Cannot delete project owner");
+
+  const project = await getProjectById({ id: projectId });
+  if (!project) throw new Error("Project does not exist");
+
+  if (project.ownerId !== userId) {
+    throw new Error("You dont own this project");
+  }
+
+  const teamMember = await db.query.projectMembers.findFirst({
+    where: (model, { eq, and }) =>
+      and(eq(model.userId, id), eq(model.projectId, projectId)),
+  });
+
+  if (!teamMember) throw new Error("Team member does not exist");
+
+  await db
+    .delete(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, id),
+      ),
+    );
+  revalidatePath(`/projects`);
 }

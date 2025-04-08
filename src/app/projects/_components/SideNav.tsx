@@ -53,7 +53,7 @@ export function SideNav({ projectId }: { projectId: number }) {
             Settings
           </button>
         </li>
-        <li>
+        <li className="whitespace-nowrap">
           <Link href={"/"}>Return home</Link>
         </li>
       </ul>
