@@ -7,6 +7,7 @@ import {
   getTeamMembers,
 } from "~/server/queries";
 import { auth } from "@clerk/nextjs/server";
+import { ErrorPopup } from "./projects/_components/ErrorPopout";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,20 @@ export default async function HomePage() {
   }
 
   const projects = await getProjectsByTeamMember();
+  if (projects.error) {
+    return <h1>Error: {projects.error}</h1>;
+  }
   const invitations = await getMyInvitations();
+  if (invitations.error) {
+    return <h1>Error: {invitations.error}</h1>;
+  }
 
   const projectsWithTeamMembers = await Promise.all(
-    projects.map(async (project) => {
+    projects.data!.map(async (project) => {
       const teamMembers = await getTeamMembers({ projectId: project.id });
       return {
         ...project,
-        members: teamMembers,
+        members: teamMembers.data ? teamMembers.data : [],
       };
     }),
   );
@@ -40,7 +47,7 @@ export default async function HomePage() {
     <main className="h-full p-8">
       <SignedIn>
         {/* Invitation List */}
-        <MyInvitations invites={invitations} />
+        <MyInvitations invites={invitations.data!} />
         {/* Project List*/}
         <div className="h-full rounded-md">
           <ProjectList projects={projectsWithTeamMembers} userId={userId} />

@@ -19,8 +19,17 @@ export default async function Project({
   const { id } = await params;
   const { view } = (await searchParams) || "board";
   const project = await getProjectById({ id });
+  if (project.error) {
+    return <h1>Error: {project.error}</h1>;
+  }
   const team = await getTeamMembers({ projectId: id });
+  if (team.error) {
+    return <h1>Error: {team.error}</h1>;
+  }
   const invites = await getInvitationsByProject({ projectId: id });
+  if (invites.error) {
+    return <h1>Error: {invites.error}</h1>;
+  }
 
   return (
     <main className="flex h-full max-h-fit flex-col gap-4">
@@ -36,13 +45,13 @@ export default async function Project({
           </div>
           <div className="flex-1 p-4">
             {(view === "board" || view === undefined || view === null) && (
-              <Kanban projectId={id} />
+              <Kanban project={project.data!} />
             )}
             {view === "settings" && (
               <ProjectSettings
-                project={project!}
-                team={team}
-                invites={invites}
+                project={project.data!}
+                team={team.data!}
+                invites={invites.data!}
               />
             )}
           </div>

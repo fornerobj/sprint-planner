@@ -18,10 +18,8 @@ import {
   getTaskById,
   getTeamMembers,
 } from "./queries";
-import { string } from "zod";
-import { getAutomaticTypeDirectiveNames } from "typescript";
-import { resolve } from "path";
 import { redirect } from "next/navigation";
+import { error } from "console";
 
 export async function createProject(props: {
   name: string;
@@ -29,9 +27,9 @@ export async function createProject(props: {
 }) {
   const user = await auth();
 
-  if (!user.userId) throw new Error("Unauthorized");
-  if (!props.name) throw new Error("Name Missing");
-  if (!props.description) throw new Error("Description Missing");
+  if (!user.userId) return { error: "Unauthorized" };
+  if (!props.name) return { error: "No name given" };
+  if (!props.description) return { error: "No description given" };
 
   const [newProject] = await db
     .insert(projects)
@@ -41,7 +39,7 @@ export async function createProject(props: {
       ownerId: user.userId,
     })
     .returning();
-  if (!newProject) throw new Error("Failed to create new Project");
+  if (!newProject) return { error: "Failed to add project" };
 
   const [teamMember] = await db
     .insert(projectMembers)
@@ -52,30 +50,31 @@ export async function createProject(props: {
     .returning();
   if (!teamMember) {
     await db.delete(projects).where(eq(projects.id, newProject.id));
-    throw new Error("Failed to create teamMember. Aborting.");
+    return { error: "Failed to add you as teammate" };
   }
 
-  return { sucess: true };
+  return { error: true };
 }
 
 export async function deleteProject({ id }: { id: number }) {
   const user = await auth();
 
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized" };
 
   const project = await getProjectById({ id: id });
-  if (!project) throw new Error("Project does not exist");
+  if (!project) return { error: "No project owner" };
 
-  if (user.userId !== project.ownerId) throw new Error("Unauthorized");
+  if (user.userId !== project.data?.ownerId)
+    return { error: "You are not the owner" };
 
   await db
     .delete(projects)
     .where(eq(projects.id, id))
     .catch((e) => {
-      throw new Error("Error: ", e);
+      return { error: "Failed to delete project" };
     });
   revalidatePath("/");
-  return { success: true };
+  return { error: null };
 }
 
 export async function updateProject({
@@ -88,15 +87,14 @@ export async function updateProject({
   description?: string | null;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
   const projectToUpdate = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, id),
   });
 
-  if (!projectToUpdate) throw new Error("Project does not exist");
-  if (projectToUpdate.ownerId !== userId)
-    throw new Error("You do not own this project");
+  if (!projectToUpdate) return { error: "Unauthorized" };
+  if (projectToUpdate.ownerId !== userId) return { error: "Unauthorized" };
 
   const updateData: Record<string, string> = {};
 
@@ -108,7 +106,7 @@ export async function updateProject({
   }
 
   if (Object.keys(updateData).length === 0) {
-    throw new Error("Noting was passed to update");
+    return { error: "Unauthorized" };
   }
 
   await db.update(projects).set(updateData).where(eq(projects.id, id));
@@ -123,20 +121,20 @@ export async function createTask(props: {
 }) {
   const user = await auth();
 
-  if (!user.userId) throw new Error("Unauthorized");
-  if (!props.content) throw new Error("Content Missing");
-  if (!props.category) throw new Error("Category Missing");
-  if (!props.projectId) throw new Error("Project Missing");
+  if (!user.userId) return { error: "Unauthorized" };
+  if (!props.content) return { error: "Unauthorized" };
+  if (!props.category) return { error: "Unauthorized" };
+  if (!props.projectId) return { error: "Unauthorized" };
 
   if (!["Required", "In_Progress", "Finished"].includes(props.category)) {
-    throw new Error("Invalid category");
+    return { error: "Unauthorized" };
   }
 
   const project = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, props.projectId),
   });
 
-  if (!project) throw new Error("Project does not exist");
+  if (!project) return { error: "Unauthorized" };
 
   const newTask = await db
     .insert(tasks)
@@ -147,24 +145,24 @@ export async function createTask(props: {
       projectId: props.projectId,
     })
     .returning();
-  if (!newTask) throw new Error("No new task, or unauthorized");
+  if (!newTask) return { error: "Unauthorized" };
 
   revalidatePath("/");
-  return { success: true };
+  return { error: null };
 }
 
 export async function deleteTask({ id }: { id: number }) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized" };
 
   const taskToDelete = await getTaskById({ id });
-  if (!taskToDelete) throw new Error("Task does not exist");
+  if (!taskToDelete) return { error: "Unauthorized" };
 
   await db.delete(tasks).where(eq(tasks.id, id));
 
   revalidatePath(`/projects/${id}`);
 
-  return { success: true };
+  return { error: null };
 }
 
 export async function updateTaskCategory(props: {
@@ -173,12 +171,12 @@ export async function updateTaskCategory(props: {
 }) {
   const user = await auth();
 
-  if (!user.userId) throw new Error("Unauthorized");
-  if (!props.id) throw new Error("Content Missing");
-  if (!props.newCategory) throw new Error("Category Missing");
+  if (!user.userId) return { error: "Unauthorized" };
+  if (!props.id) return { error: "Unauthorized" };
+  if (!props.newCategory) return { error: "Unauthorized" };
 
   if (!["Required", "In_Progress", "Finished"].includes(props.newCategory)) {
-    throw new Error("Invalid category");
+    return { error: "Unauthorized" };
   }
 
   const task = await db.query.tasks.findFirst({
@@ -187,18 +185,19 @@ export async function updateTaskCategory(props: {
   });
 
   if (!task) {
-    throw new Error("Task not found, or unauthorized");
+    return { error: "Unauthorized" };
   }
 
   const projOfTask = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, task.projectId),
   });
 
-  if (!projOfTask) throw new Error("That task has no assigned project");
+  if (!projOfTask) return { error: "Unauthorized" };
 
   const team = await getTeamMembers({ projectId: projOfTask.id });
-  if (!team.some((teammate) => teammate.id === user.userId)) {
-    throw new Error("You are not on this team");
+  if (team.error || !team.data) return { error: team.error };
+  if (!team.data.some((teammate) => teammate.id === user.userId)) {
+    return { error: "Unauthorized" };
   }
 
   await db
@@ -211,7 +210,7 @@ export async function updateTaskCategory(props: {
 
   revalidatePath("/");
 
-  return { success: true };
+  return { error: null };
 }
 
 export async function addTeamMember({
@@ -222,13 +221,13 @@ export async function addTeamMember({
   userEmail: string;
 }) {
   const currentUser = await auth();
-  if (!currentUser.userId) throw new Error("Unauthorized");
+  if (!currentUser.userId) return { error: "Unauthorized" };
 
   const project = await getProjectById({ id: projectId });
-  if (!project) throw new Error("Project does not exist");
+  if (project.error || !project.data) return { error: project.error };
 
-  if (project.ownerId !== currentUser.userId) {
-    throw new Error("You dont own this project");
+  if (project.data.ownerId !== currentUser.userId) {
+    return { error: "Unauthorized" };
   }
 
   const emailAddress = [userEmail];
@@ -237,7 +236,7 @@ export async function addTeamMember({
   const { data: users } = await cc.users.getUserList({ emailAddress });
 
   if (users.length === 0) {
-    throw new Error("No user with that email is signed up yet");
+    return { error: "Unauthorized" };
   }
 
   const userId = users[0]!.id;
@@ -248,7 +247,7 @@ export async function addTeamMember({
   });
 
   revalidatePath(`/projects`);
-  return { success: true };
+  return { error: null };
 }
 
 export async function deleteTeamMember({
@@ -259,21 +258,22 @@ export async function deleteTeamMember({
   projectId: number;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
-  if (userId === id) throw new Error("Cannot delete project owner");
+  if (userId === id) return { error: "Unauthorized" };
 
   const project = await getProjectById({ id: projectId });
-  if (!project) throw new Error("Project does not exist");
+  if (project.error || !project.data) return { error: project.error };
 
-  if (project.ownerId !== userId) {
-    throw new Error("You dont own this project");
+  if (project.data.ownerId !== userId) {
+    return { error: "Unauthorized" };
   }
 
   const teamMembers = await getTeamMembers({ projectId });
+  if (teamMembers.error || !teamMembers.data) return { error: project.error };
 
-  if (teamMembers.some((obj) => obj.id === id)) {
-    throw new Error("Team member does not exist");
+  if (!teamMembers.data.some((obj) => obj.id === id)) {
+    return { error: "Teammember doesnt exist" };
   }
 
   await db
@@ -289,18 +289,19 @@ export async function deleteTeamMember({
 
 export async function leaveTeam({ projectId }: { projectId: number }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
   const project = await getProjectById({ id: projectId });
-  if (!project) throw new Error("Project does not exist");
+  if (project.error || !project.data) return { error: project.error };
 
-  if (project.ownerId === userId) {
-    throw new Error("Must reassign owner before leaving project");
+  if (project.data.ownerId === userId) {
+    return { error: "Unauthorized" };
   }
   const teamMembers = await getTeamMembers({ projectId });
+  if (teamMembers.error || !teamMembers.data) return { error: project.error };
 
-  if (teamMembers.some((obj) => obj.id === userId)) {
-    throw new Error("Team member does not exist");
+  if (teamMembers.data.some((obj) => obj.id === userId)) {
+    return { error: "Unauthorized" };
   }
 
   await db
@@ -322,17 +323,19 @@ export async function inviteTeamMember({
   userEmail: string;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
   const project = await getProjectById({ id: projectId });
-  if (!project) throw new Error("No project exists with given ID");
-  if (project.ownerId !== userId) {
-    throw new Error("You do not own this project");
+  if (project.error || !project.data) return { error: project.error };
+  if (project.data.ownerId !== userId) {
+    return { error: "Unauthorized" };
   }
 
   const existingTeamMembers = await getTeamMembers({ projectId });
-  if (existingTeamMembers.some((obj) => obj.email === userEmail)) {
-    throw new Error("Teammate already in the project");
+  if (existingTeamMembers.error || !existingTeamMembers.data)
+    return { error: project.error };
+  if (existingTeamMembers.data.some((obj) => obj.email === userEmail)) {
+    return { error: "Unauthorized" };
   }
 
   const existingInvitation = await db.query.projectInvitations.findFirst({
@@ -344,7 +347,7 @@ export async function inviteTeamMember({
       ),
   });
   if (existingInvitation) {
-    throw new Error("Already pending invitation for this user");
+    return { error: "Unauthorized" };
   }
 
   const expiresAt = new Date();
@@ -359,7 +362,7 @@ export async function inviteTeamMember({
   });
 
   revalidatePath(`/projects/${projectId}`);
-  return { success: true };
+  return { error: null };
 }
 
 export async function acceptInvitation({
@@ -368,25 +371,27 @@ export async function acceptInvitation({
   invitationId: number;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
   const invite = await getInvitationById({ invitationId });
-  if (invite.status !== "pending") throw new Error("Invalid or expired invite");
+  if (invite.error || !invite.data) return { error: invite.error };
+  if (invite.data.status !== "pending")
+    return { error: "Invite it no longer pending" };
 
   const cc = await clerkClient();
   const user = await cc.users.getUser(userId);
   const userEmail = user.emailAddresses[0]?.emailAddress;
-  if (!userEmail) throw new Error("No email address found for current user");
-  if (invite.invitedEmail !== userEmail) {
-    throw new Error("This invite is not for you");
+  if (!userEmail) return { error: "Unauthorized" };
+  if (invite.data.invitedEmail !== userEmail) {
+    return { error: "Unauthorized" };
   }
 
-  if (new Date(invite.expiresAt) < new Date()) {
+  if (new Date(invite.data.expiresAt) < new Date()) {
     await db
       .update(projectInvitations)
       .set({ status: "expired" })
       .where(eq(projectInvitations.id, invitationId));
-    throw new Error("Invitation has expired");
+    return { error: "Unauthorized" };
   }
 
   await db
@@ -395,12 +400,12 @@ export async function acceptInvitation({
     .where(eq(projectInvitations.id, invitationId));
 
   await db.insert(projectMembers).values({
-    projectId: invite.projectId,
+    projectId: invite.data.projectId,
     userId,
   });
 
   revalidatePath("/");
-  return { success: true };
+  return { error: null };
 }
 
 export async function declineInvitation({
@@ -409,15 +414,17 @@ export async function declineInvitation({
   invitationId: number;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized" };
 
   const invite = await getInvitationById({ invitationId });
-  if (invite.status !== "pending") throw new Error("Invalid or expired invite");
+  if (invite.error || !invite.data) return { error: invite.error };
+  if (invite.data.status !== "pending")
+    return { error: "Invite is not pending" };
 
   const cc = await clerkClient();
   const user = await cc.users.getUser(userId);
   const userEmail = user.emailAddresses[0]?.emailAddress;
-  if (!userEmail) throw new Error("No email address found for current user");
+  if (!userEmail) return { error: "Unauthorized" };
 
   const result = await db
     .update(projectInvitations)
@@ -430,8 +437,8 @@ export async function declineInvitation({
       ),
     )
     .returning();
-  if (result.length === 0) throw new Error("Invalid or unauthorized");
+  if (result.length === 0) return { error: "Unauthorized" };
 
   revalidatePath("/");
-  return { success: true };
+  return { error: null };
 }

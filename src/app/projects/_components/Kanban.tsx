@@ -1,11 +1,13 @@
-import { Task } from "./Task";
-import { getProjectById, getProjectTasks } from "~/server/queries";
+import { TaskCard } from "./Task";
 import { CreateTask } from "./CreateTask";
+import type { Project, Task } from "~/server/db/schema";
 
-export async function Kanban({ projectId }: { projectId: number }) {
-  const project = await getProjectById({ id: projectId });
-  const tasks = await getProjectTasks({ projectId });
+type propType = Project & {
+  tasks: Task[];
+};
 
+export function Kanban({ project }: { project: propType }) {
+  const tasks = project.tasks;
   if (!tasks || !project) {
     return null;
   }
@@ -20,30 +22,30 @@ export async function Kanban({ projectId }: { projectId: number }) {
       <div className="flex max-h-full flex-1 overflow-hidden text-center">
         <div className="flex max-h-full flex-1 flex-col gap-4 p-4">
           <h1 className="text-2xl font-bold">Required</h1>
-          <CreateTask category="Required" projectId={projectId} />
+          <CreateTask category="Required" projectId={project.id} />
           <div className="flex flex-col gap-4 overflow-y-auto">
             {required.map((task) => (
-              <Task key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} />
             ))}
           </div>
         </div>
 
         <div className="flex max-h-full flex-1 flex-col gap-4 p-4">
           <h1 className="text-2xl font-bold">In Progress</h1>
-          <CreateTask category="In_Progress" projectId={projectId} />
+          <CreateTask category="In_Progress" projectId={project.id} />
           <div className="flex flex-col gap-4 overflow-y-auto">
             {in_progress.map((task) => (
-              <Task key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} />
             ))}
           </div>
         </div>
 
         <div className="flex max-h-full flex-1 flex-col gap-4 p-4">
           <h1 className="text-2xl font-bold">Finished</h1>
-          <CreateTask category="Finished" projectId={projectId} />
+          <CreateTask category="Finished" projectId={project.id} />
           <div className="flex flex-col gap-4 overflow-y-auto">
             {finished.map((task) => (
-              <Task key={task.id} task={task} />
+              <TaskCard key={task.id} task={task} />
             ))}
           </div>
         </div>

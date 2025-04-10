@@ -1,11 +1,9 @@
 "use client";
 import {
-  addTeamMember,
   deleteTeamMember,
   inviteTeamMember,
   updateProject,
 } from "~/server/mutations";
-import { getProjectById } from "~/server/queries";
 import type { Project } from "~/server/db/schema";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,11 +33,14 @@ export function ProjectSettings({
       const name = formData.get("name") as string;
       const description = formData.get("description") as string;
 
-      await updateProject({
+      const res = await updateProject({
         id: project.id,
         name: name || null,
         description: description || null,
       });
+      if (res?.error) {
+        setError(res.error);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update project");
     } finally {
@@ -53,7 +54,14 @@ export function ProjectSettings({
     setError(null);
     try {
       const email = formData.get("email") as string;
-      await inviteTeamMember({ projectId: project.id, userEmail: email });
+      const res = await inviteTeamMember({
+        projectId: project.id,
+        userEmail: email,
+      });
+      console.log(res);
+      if (res?.error) {
+        setError(res.error);
+      }
 
       // Clear the form
       formData.set("email", "");
@@ -72,7 +80,10 @@ export function ProjectSettings({
     setError(null);
 
     try {
-      await deleteTeamMember({ id, projectId });
+      const res = await deleteTeamMember({ id, projectId });
+      if (res?.error) {
+        setError(res.error);
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to delete team member",

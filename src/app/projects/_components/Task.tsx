@@ -12,7 +12,7 @@ type Task = {
   category: TaskCategory;
 };
 
-export function Task({ task }: { task: Task }) {
+export function TaskCard({ task }: { task: Task }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [optimisticTask, setOptimisticTask] = useOptimistic(

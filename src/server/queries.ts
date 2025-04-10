@@ -3,49 +3,49 @@ import "server-only";
 
 import { eq, exists, and, or, desc } from "drizzle-orm";
 import { db } from "~/server/db";
-import { projectMembers, tasks } from "~/server/db/schema";
+import { projectMembers, projects, tasks } from "~/server/db/schema";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 export async function getMytasks() {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unathorized", data: null };
 
   const tasks = await db.query.tasks.findMany({
     where: (model, { eq }) => eq(model.userId, user.userId),
     orderBy: (model, { desc }) => desc(model.id),
   });
 
-  return tasks;
+  return { error: null, data: tasks };
 }
 
 export async function getProjectTasks({ projectId }: { projectId: number }) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized", data: null };
 
   const tasks = await db.query.tasks.findMany({
     where: (model, { eq }) => eq(model.projectId, projectId),
     orderBy: (model, { desc }) => desc(model.createdAt),
   });
 
-  return tasks;
+  return { error: null, data: tasks };
 }
 
 export async function getTaskById({ id }: { id: number }) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized", data: null };
 
   const task = await db.query.tasks.findFirst({
     where: (model, { eq }) => eq(model.id, id),
   });
 
-  if (!task) throw new Error("No task exists with that ID");
+  if (!task) return { error: "No task with that id", data: null };
 
-  return task;
+  return { error: null, data: task };
 }
 
 export async function getProjectById({ id }: { id: number }) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized", data: null };
 
   const project = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, id),
@@ -54,12 +54,14 @@ export async function getProjectById({ id }: { id: number }) {
     },
   });
 
-  return project;
+  if (!project) return { error: "No project with that id", data: null };
+
+  return { error: null, data: project };
 }
 
 export async function getProjectsByTeamMember() {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized", data: null };
 
   const projects = await db.query.projects.findMany({
     where: (model, { eq, or }) =>
@@ -82,12 +84,12 @@ export async function getProjectsByTeamMember() {
     },
   });
 
-  return projects;
+  return { error: null, data: projects };
 }
 
 export async function getTeamMembers({ projectId }: { projectId: number }) {
   const user = await auth();
-  if (!user.userId) throw new Error("Unauthorized");
+  if (!user.userId) return { error: "Unauthorized", data: null };
 
   const projectTeamMembers = await db.query.projectMembers.findMany({
     where: (model, { eq }) => eq(model.projectId, projectId),
@@ -105,7 +107,7 @@ export async function getTeamMembers({ projectId }: { projectId: number }) {
     avatar: user.imageUrl,
   }));
 
-  return teamMembers;
+  return { error: null, data: teamMembers };
 }
 
 export type TeamMember = {
@@ -121,7 +123,7 @@ export async function getInvitationById({
   invitationId: number;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized", data: null };
 
   const invite = await db.query.projectInvitations.findFirst({
     where: (model, { eq }) => eq(model.id, invitationId),
@@ -129,9 +131,9 @@ export async function getInvitationById({
       project: true,
     },
   });
-  if (!invite) throw new Error("Than invite does not exist");
+  if (!invite) return { error: "Invite does not exist", data: null };
 
-  return invite;
+  return { error: null, data: invite };
 }
 
 export async function getInvitationsByProject({
@@ -140,10 +142,10 @@ export async function getInvitationsByProject({
   projectId: number;
 }) {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized", data: null };
 
   const project = await getProjectById({ id: projectId });
-  if (!project) throw new Error("project does not exist");
+  if (!project) return { error: "Project does not exist", data: null };
   // if (project.ownerId !== userId) {
   //   throw new Error("You do not own this project");
   // }
@@ -153,17 +155,18 @@ export async function getInvitationsByProject({
     orderBy: (model, { desc }) => desc(model.createdAt),
   });
 
-  return invitations;
+  return { error: null, data: invitations };
 }
 
 export async function getMyInvitations() {
   const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) return { error: "Unauthorized", data: null };
 
   const cc = await clerkClient();
   const user = await cc.users.getUser(userId);
   const userEmail = user.emailAddresses[0]?.emailAddress;
-  if (!userEmail) throw new Error("No email address found for current user");
+  if (!userEmail)
+    return { error: "No email address found for current user", data: null };
 
   const invitations = await db.query.projectInvitations.findMany({
     where: (model, { and, eq }) =>
@@ -174,5 +177,5 @@ export async function getMyInvitations() {
     orderBy: (model, { desc }) => desc(model.createdAt),
   });
 
-  return invitations;
+  return { error: null, data: invitations };
 }
