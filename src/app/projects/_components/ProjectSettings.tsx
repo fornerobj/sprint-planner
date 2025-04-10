@@ -2,6 +2,7 @@
 import {
   addTeamMember,
   deleteTeamMember,
+  inviteTeamMember,
   updateProject,
 } from "~/server/mutations";
 import { getProjectById } from "~/server/queries";
@@ -15,9 +16,11 @@ import { setEnvironmentData } from "worker_threads";
 export function ProjectSettings({
   project,
   team,
+  invites,
 }: {
   project: Project;
   team: TeamMember[];
+  invites: any[];
 }) {
   if (!project) return <h1>You have no project</h1>;
   const [error, setError] = useState<string | null>(null);
@@ -47,22 +50,23 @@ export function ProjectSettings({
     }
   }
 
-  const [isAdding, setIsAdding] = useState(false);
-
-  async function handleAddTeamMember(formData: FormData) {
-    setIsAdding(true);
+  const [isInviting, setIsInviting] = useState(false);
+  async function handleInviteTeamMember(formData: FormData) {
+    setIsInviting(true);
     setError(null);
     try {
       const email = formData.get("email") as string;
+      await inviteTeamMember({ projectId: project.id, userEmail: email });
 
-      await addTeamMember({ projectId: project.id, userEmail: email });
+      // Clear the form
+      formData.set("email", "");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to add team member",
+        err instanceof Error ? err.message : "Failed to send invitation",
       );
       alert(err);
     } finally {
-      setIsAdding(false);
+      setIsInviting(false);
     }
   }
 
@@ -78,7 +82,7 @@ export function ProjectSettings({
         err instanceof Error ? err.message : "Failed to delete team member",
       );
     } finally {
-      setIsAdding(false);
+      setDeleting(false);
     }
   }
 
@@ -114,17 +118,17 @@ export function ProjectSettings({
         </form>
       </div>
       <div className="flex flex-col">
-        <form className="flex flex-col gap-4" action={handleAddTeamMember}>
+        <form className="flex flex-col gap-4" action={handleInviteTeamMember}>
           <label className="bg-slate-900 pl-4">
-            Team Member email:
-            <input className="m-4" type="text" name="email" />
+            Invite by email:
+            <input className="m-4" type="email" name="email" required />
           </label>
           <button
             type="submit"
-            disabled={isAdding}
+            disabled={isInviting}
             className="rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-600 disabled:opacity-50"
           >
-            {isAdding ? "Adding..." : "Add Teammember"}
+            {isInviting ? "Sending..." : "Send Invitation"}
           </button>
         </form>
         <div className="p-4">
@@ -140,6 +144,21 @@ export function ProjectSettings({
               </button>
             </div>
           ))}
+        </div>
+        <div className="flex flex-col gap-2 p-4">
+          <h2 className="text-xl">Pending Invitations</h2>
+          {invites.length === 0 ? (
+            <p className="text-slate-400">No pending invitations</p>
+          ) : (
+            invites
+              .filter((inv) => inv.status === "pending")
+              .map((invitation) => (
+                <div key={invitation.id} className="flex items-center p-1">
+                  <li className="flex-1">{invitation.invitedEmail}</li>
+                  <span className="text-sm text-yellow-500">Pending</span>
+                </div>
+              ))
+          )}
         </div>
       </div>
     </div>

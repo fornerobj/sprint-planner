@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 
-import { eq, exists, and, or } from "drizzle-orm";
+import { eq, exists, and, or, desc } from "drizzle-orm";
 import { db } from "~/server/db";
 import { projectMembers, tasks } from "~/server/db/schema";
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -49,6 +49,9 @@ export async function getProjectById({ id }: { id: number }) {
 
   const project = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, id),
+    with: {
+      tasks: true,
+    },
   });
 
   return project;
@@ -111,3 +114,65 @@ export type TeamMember = {
   email: string | undefined;
   avatar: string;
 };
+
+export async function getInvitationById({
+  invitationId,
+}: {
+  invitationId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const invite = await db.query.projectInvitations.findFirst({
+    where: (model, { eq }) => eq(model.id, invitationId),
+    with: {
+      project: true,
+    },
+  });
+  if (!invite) throw new Error("Than invite does not exist");
+
+  return invite;
+}
+
+export async function getInvitationsByProject({
+  projectId,
+}: {
+  projectId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await getProjectById({ id: projectId });
+  if (!project) throw new Error("project does not exist");
+  if (project.ownerId !== userId) {
+    throw new Error("You do not own this project");
+  }
+
+  const invitations = await db.query.projectInvitations.findMany({
+    where: (model, { eq }) => eq(model.projectId, projectId),
+    orderBy: (model, { desc }) => desc(model.createdAt),
+  });
+
+  return invitations;
+}
+
+export async function getMyInvitations() {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const cc = await clerkClient();
+  const user = await cc.users.getUser(userId);
+  const userEmail = user.emailAddresses[0]?.emailAddress;
+  if (!userEmail) throw new Error("No email address found for current user");
+
+  const invitations = await db.query.projectInvitations.findMany({
+    where: (model, { and, eq }) =>
+      and(eq(model.invitedEmail, userEmail), eq(model.status, "pending")),
+    with: {
+      project: true,
+    },
+    orderBy: (model, { desc }) => desc(model.createdAt),
+  });
+
+  return invitations;
+}

@@ -67,6 +67,33 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   }),
 }));
 
+export const projectInvitations = createTable("project_invitation", (d) => ({
+  id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
+  projectId: d
+    .integer()
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  invitedEmail: d.varchar("email", { length: 256 }).notNull(),
+  invitedBy: d.varchar("userId", { length: 256 }).notNull(),
+  status: d.varchar("status", { length: 20 }).default("pending").notNull(),
+  createdAt: d
+    .timestamp({ withTimezone: true })
+    .default(sql`CURRENT_TIMESTAMP`)
+    .notNull(),
+  expiresAt: d.timestamp({ withTimezone: true }).notNull(),
+}));
+
+export const projectInvitationRelations = relations(
+  projectInvitations,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [projectInvitations.id],
+      references: [projects.id],
+    }),
+  }),
+);
+
 export type TaskCategory = "Required" | "In_Progress" | "Finished";
 export type Task = typeof tasks.$inferSelect;
 export type Project = typeof projects.$inferSelect;
+export type ProjectInvitationType = typeof projectInvitations.$inferSelect;

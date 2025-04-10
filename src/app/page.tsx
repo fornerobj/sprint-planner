@@ -1,6 +1,10 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ProjectList } from "./_components/ProjectList";
-import { getProjectsByTeamMember, getTeamMembers } from "~/server/queries";
+import {
+  getMyInvitations,
+  getProjectsByTeamMember,
+  getTeamMembers,
+} from "~/server/queries";
 import { auth } from "@clerk/nextjs/server";
 
 export const dynamic = "force-dynamic";
@@ -19,23 +23,14 @@ export default async function HomePage() {
   }
 
   const projects = await getProjectsByTeamMember();
-
-  const projectsWithTeamMembers = await Promise.all(
-    projects.map(async (project) => {
-      const teamMembers = await getTeamMembers({ projectId: project.id });
-      return {
-        ...project,
-        members: teamMembers,
-      };
-    }),
-  );
+  const invitations = await getMyInvitations();
 
   return (
     <main className="h-full p-8">
       <SignedIn>
         {/* Project List*/}
         <div className="h-full rounded-md">
-          <ProjectList projects={projectsWithTeamMembers} userId={userId} />
+          <ProjectList projects={projects} userId={userId} />
         </div>
       </SignedIn>
     </main>

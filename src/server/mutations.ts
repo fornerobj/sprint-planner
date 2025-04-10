@@ -2,13 +2,26 @@
 
 import { eq, and } from "drizzle-orm";
 import { db } from "~/server/db";
-import { projects, tasks, projectMembers } from "~/server/db/schema";
+import {
+  projects,
+  tasks,
+  projectMembers,
+  projectInvitations,
+} from "~/server/db/schema";
 import { auth } from "@clerk/nextjs/server";
 import type { TaskCategory } from "~/server/db/schema";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
-import { getProjectById, getTaskById, getTeamMembers } from "./queries";
+import {
+  getInvitationById,
+  getProjectById,
+  getTaskById,
+  getTeamMembers,
+} from "./queries";
 import { string } from "zod";
+import { getAutomaticTypeDirectiveNames } from "typescript";
+import { resolve } from "path";
+import { redirect } from "next/navigation";
 
 export async function createProject(props: {
   name: string;
@@ -257,12 +270,11 @@ export async function deleteTeamMember({
     throw new Error("You dont own this project");
   }
 
-  const teamMember = await db.query.projectMembers.findFirst({
-    where: (model, { eq, and }) =>
-      and(eq(model.userId, id), eq(model.projectId, projectId)),
-  });
+  const teamMembers = await getTeamMembers({ projectId });
 
-  if (!teamMember) throw new Error("Team member does not exist");
+  if (teamMembers.some((obj) => obj.id === id)) {
+    throw new Error("Team member does not exist");
+  }
 
   await db
     .delete(projectMembers)
@@ -272,5 +284,154 @@ export async function deleteTeamMember({
         eq(projectMembers.userId, id),
       ),
     );
-  revalidatePath(`/projects`);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function leaveTeam({ projectId }: { projectId: number }) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await getProjectById({ id: projectId });
+  if (!project) throw new Error("Project does not exist");
+
+  if (project.ownerId === userId) {
+    throw new Error("Must reassign owner before leaving project");
+  }
+  const teamMembers = await getTeamMembers({ projectId });
+
+  if (teamMembers.some((obj) => obj.id === userId)) {
+    throw new Error("Team member does not exist");
+  }
+
+  await db
+    .delete(projectMembers)
+    .where(
+      and(
+        eq(projectMembers.projectId, projectId),
+        eq(projectMembers.userId, userId),
+      ),
+    );
+  redirect("/projects");
+}
+
+export async function inviteTeamMember({
+  projectId,
+  userEmail,
+}: {
+  projectId: number;
+  userEmail: string;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const project = await getProjectById({ id: projectId });
+  if (!project) throw new Error("No project exists with given ID");
+  if (project.ownerId !== userId) {
+    throw new Error("You do not own this project");
+  }
+
+  const existingTeamMembers = await getTeamMembers({ projectId });
+  if (existingTeamMembers.some((obj) => obj.email === userEmail)) {
+    throw new Error("Teammate already in the project");
+  }
+
+  const existingInvitation = await db.query.projectInvitations.findFirst({
+    where: (invitation, { and, eq }) =>
+      and(
+        eq(invitation.projectId, projectId),
+        eq(invitation.invitedEmail, userEmail),
+        eq(invitation.status, "pending"),
+      ),
+  });
+  if (existingInvitation) {
+    throw new Error("Already pending invitation for this user");
+  }
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await db.insert(projectInvitations).values({
+    projectId,
+    invitedEmail: userEmail,
+    invitedBy: userId,
+    status: "pending",
+    expiresAt,
+  });
+
+  revalidatePath(`/projects/${projectId}`);
+  return { success: true };
+}
+
+export async function acceptInvitation({
+  invitationId,
+}: {
+  invitationId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const invite = await getInvitationById({ invitationId });
+  if (invite.status !== "pending") throw new Error("Invalid or expired invite");
+
+  const cc = await clerkClient();
+  const user = await cc.users.getUser(userId);
+  const userEmail = user.emailAddresses[0]?.emailAddress;
+  if (!userEmail) throw new Error("No email address found for current user");
+  if (invite.invitedEmail !== userEmail) {
+    throw new Error("This invite is not for you");
+  }
+
+  if (new Date(invite.expiresAt) < new Date()) {
+    await db
+      .update(projectInvitations)
+      .set({ status: "expired" })
+      .where(eq(projectInvitations.id, invitationId));
+    throw new Error("Invitation has expired");
+  }
+
+  await db
+    .update(projectInvitations)
+    .set({ status: "accepted" })
+    .where(eq(projectInvitations.id, invitationId));
+
+  await db.insert(projectMembers).values({
+    projectId: invite.projectId,
+    userId,
+  });
+
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function declineInvitation({
+  invitationId,
+}: {
+  invitationId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const invite = await getInvitationById({ invitationId });
+  if (invite.status !== "pending") throw new Error("Invalid or expired invite");
+
+  const cc = await clerkClient();
+  const user = await cc.users.getUser(userId);
+  const userEmail = user.emailAddresses[0]?.emailAddress;
+  if (!userEmail) throw new Error("No email address found for current user");
+
+  const result = await db
+    .update(projectInvitations)
+    .set({ status: "declined" })
+    .where(
+      and(
+        eq(projectInvitations.id, invitationId),
+        eq(projectInvitations.invitedEmail, userEmail),
+        eq(projectInvitations.status, "pending"),
+      ),
+    )
+    .returning();
+  if (result.length === 0) throw new Error("Invalid or unauthorized");
+
+  revalidatePath("/");
+  return { success: true };
 }

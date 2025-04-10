@@ -3,10 +3,11 @@ import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { SideNav } from "../_components/SideNav";
 import { ProjectSettings } from "../_components/ProjectSettings";
 import type { Primitive } from "zod";
-import { getProjectById, getTeamMembers } from "~/server/queries";
-import Link from "next/link";
-
-export const dynamic = "force-dynamic";
+import {
+  getInvitationsByProject,
+  getProjectById,
+  getTeamMembers,
+} from "~/server/queries";
 
 export default async function Project({
   params,
@@ -19,6 +20,7 @@ export default async function Project({
   const { view } = (await searchParams) || "board";
   const project = await getProjectById({ id });
   const team = await getTeamMembers({ projectId: id });
+  const invites = await getInvitationsByProject({ projectId: id });
 
   return (
     <main className="flex h-full max-h-fit flex-col gap-4">
@@ -37,7 +39,11 @@ export default async function Project({
               <Kanban projectId={id} />
             )}
             {view === "settings" && (
-              <ProjectSettings project={project!} team={team} />
+              <ProjectSettings
+                project={project!}
+                team={team}
+                invites={invites}
+              />
             )}
           </div>
         </div>
