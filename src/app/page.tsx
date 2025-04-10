@@ -1,5 +1,6 @@
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ProjectList } from "./_components/ProjectList";
+import { MyInvitations } from "./_components/Invitations";
 import {
   getMyInvitations,
   getProjectsByTeamMember,
@@ -25,12 +26,24 @@ export default async function HomePage() {
   const projects = await getProjectsByTeamMember();
   const invitations = await getMyInvitations();
 
+  const projectsWithTeamMembers = await Promise.all(
+    projects.map(async (project) => {
+      const teamMembers = await getTeamMembers({ projectId: project.id });
+      return {
+        ...project,
+        members: teamMembers,
+      };
+    }),
+  );
+
   return (
     <main className="h-full p-8">
       <SignedIn>
+        {/* Invitation List */}
+        <MyInvitations invites={invitations} />
         {/* Project List*/}
         <div className="h-full rounded-md">
-          <ProjectList projects={projects} userId={userId} />
+          <ProjectList projects={projectsWithTeamMembers} userId={userId} />
         </div>
       </SignedIn>
     </main>

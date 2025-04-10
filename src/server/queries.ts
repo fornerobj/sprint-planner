@@ -144,9 +144,9 @@ export async function getInvitationsByProject({
 
   const project = await getProjectById({ id: projectId });
   if (!project) throw new Error("project does not exist");
-  if (project.ownerId !== userId) {
-    throw new Error("You do not own this project");
-  }
+  // if (project.ownerId !== userId) {
+  //   throw new Error("You do not own this project");
+  // }
 
   const invitations = await db.query.projectInvitations.findMany({
     where: (model, { eq }) => eq(model.projectId, projectId),

@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { TeamMember } from "~/server/queries";
 import { TrashIcon } from "~/app/_utils/Icons";
-import { setEnvironmentData } from "worker_threads";
+import { ErrorPopup } from "./ErrorPopout";
 
 export function ProjectSettings({
   project,
@@ -40,9 +40,6 @@ export function ProjectSettings({
         name: name || null,
         description: description || null,
       });
-
-      // Refresh the page to show the updates
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update project");
     } finally {
@@ -64,7 +61,6 @@ export function ProjectSettings({
       setError(
         err instanceof Error ? err.message : "Failed to send invitation",
       );
-      alert(err);
     } finally {
       setIsInviting(false);
     }
@@ -86,81 +82,87 @@ export function ProjectSettings({
     }
   }
 
+  const clearError = () => setError(null);
+
   return (
-    <div className="flex justify-around">
-      <div className="flex">
-        <form className="flex flex-col gap-4" action={handleUpdateProject}>
-          <label className="bg-slate-900 pl-4">
-            Update Name:
-            <input
-              defaultValue={project?.name}
-              className="m-4"
-              type="text"
-              name="name"
-            />
-          </label>
-          <label className="h-32 bg-slate-900 pl-4">
-            Update Description:
-            <input
-              defaultValue={project?.description || "Add a description"}
-              className="h-24 p-4"
-              type="text"
-              name="description"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isSubmitting ? "Updating..." : "Update Project"}
-          </button>
-        </form>
-      </div>
-      <div className="flex flex-col">
-        <form className="flex flex-col gap-4" action={handleInviteTeamMember}>
-          <label className="bg-slate-900 pl-4">
-            Invite by email:
-            <input className="m-4" type="email" name="email" required />
-          </label>
-          <button
-            type="submit"
-            disabled={isInviting}
-            className="rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isInviting ? "Sending..." : "Send Invitation"}
-          </button>
-        </form>
-        <div className="p-4">
-          {team.map((t) => (
-            <div key={t.id} className="flex p-1">
-              <li>{t.email}</li>
-              <button
-                disabled={deleting}
-                onClick={() => handleDeleteTeamMember(t.id, project.id)}
-                className="hover:cursor-pointer"
-              >
-                <TrashIcon />
-              </button>
-            </div>
-          ))}
+    <>
+      <ErrorPopup message={error} onClose={clearError} />
+      <div className="flex justify-around">
+        <div className="flex">
+          <form className="flex flex-col gap-4" action={handleUpdateProject}>
+            <label className="bg-slate-900 pl-4">
+              Update Name:
+              <input
+                defaultValue={project?.name}
+                className="m-4"
+                type="text"
+                name="name"
+              />
+            </label>
+            <label className="h-32 bg-slate-900 pl-4">
+              Update Description:
+              <input
+                defaultValue={project?.description || "Add a description"}
+                className="h-24 p-4"
+                type="text"
+                name="description"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-600 disabled:opacity-50"
+            >
+              {isSubmitting ? "Updating..." : "Update Project"}
+            </button>
+          </form>
         </div>
-        <div className="flex flex-col gap-2 p-4">
-          <h2 className="text-xl">Pending Invitations</h2>
-          {invites.length === 0 ? (
-            <p className="text-slate-400">No pending invitations</p>
-          ) : (
-            invites
-              .filter((inv) => inv.status === "pending")
-              .map((invitation) => (
-                <div key={invitation.id} className="flex items-center p-1">
-                  <li className="flex-1">{invitation.invitedEmail}</li>
-                  <span className="text-sm text-yellow-500">Pending</span>
-                </div>
-              ))
-          )}
+        <div className="flex flex-col">
+          <form className="flex flex-col gap-4" action={handleInviteTeamMember}>
+            <label className="bg-slate-900 pl-4">
+              Invite by email:
+              <input className="m-4" type="email" name="email" required />
+            </label>
+            <button
+              type="submit"
+              disabled={isInviting}
+              className="rounded bg-blue-500 px-4 py-2 text-white hover:cursor-pointer hover:bg-blue-600 disabled:opacity-50"
+            >
+              {isInviting ? "Sending..." : "Send Invitation"}
+            </button>
+          </form>
+
+          <div className="p-4">
+            {team.map((t) => (
+              <div key={t.id} className="flex p-1">
+                <li>{t.email}</li>
+                <button
+                  disabled={deleting}
+                  onClick={() => handleDeleteTeamMember(t.id, project.id)}
+                  className="hover:cursor-pointer"
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2 p-4">
+            <h2 className="text-xl">Pending Invitations</h2>
+            {invites.length === 0 ? (
+              <p className="text-slate-400">No pending invitations</p>
+            ) : (
+              invites
+                .filter((inv) => inv.status === "pending")
+                .map((invitation) => (
+                  <div key={invitation.id} className="flex items-center p-1">
+                    <li className="flex-1">{invitation.invitedEmail}</li>
+                    <span className="text-sm text-yellow-500">Pending</span>
+                  </div>
+                ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

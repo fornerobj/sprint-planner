@@ -20,6 +20,7 @@ export const projects = createTable("project", (d) => ({
 export const projectsRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
   members: many(projectMembers),
+  invites: many(projectInvitations),
 }));
 
 export const projectMembers = createTable("project_member", (d) => ({
@@ -96,4 +97,6 @@ export const projectInvitationRelations = relations(
 export type TaskCategory = "Required" | "In_Progress" | "Finished";
 export type Task = typeof tasks.$inferSelect;
 export type Project = typeof projects.$inferSelect;
-export type ProjectInvitationType = typeof projectInvitations.$inferSelect;
+export type InviteType = typeof projectInvitations.$inferSelect & {
+  project: Project;
+};

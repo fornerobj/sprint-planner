@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { getMyInvitations } from "~/server/queries";
 import { acceptInvitation, declineInvitation } from "~/server/mutations";
 import { LoadingSpinner } from "../_utils/Icons";
-import type { ProjectInvitationType } from "~/server/db/schema";
+import type { InviteType } from "~/server/db/schema";
 
-export function MyInvitations({ invites }: { invites: any[] }) {
+export function MyInvitations({ invites }: { invites: InviteType[] }) {
   const [processingId, setProcessingId] = useState<number | null>(null);
 
   if (invites.length === 0) {
@@ -52,7 +52,9 @@ export function MyInvitations({ invites }: { invites: any[] }) {
           >
             <p className="font-medium">
               You're invited to join:{" "}
-              <span className="text-blue-400">{invitation.project.name}</span>
+              <span className="text-blue-400">
+                {invitation.project?.name || "Project"}
+              </span>
             </p>
             <div className="mt-2 flex gap-2">
               <button
