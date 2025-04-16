@@ -100,7 +100,16 @@ export function ProjectSettings({
       <ErrorPopup message={error} onClose={clearError} />
       <div className="flex justify-around">
         <div className="flex">
-          <form className="flex flex-col gap-4" action={handleUpdateProject}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const formData = new FormData(e.currentTarget);
+              await handleUpdateProject(formData);
+              form.reset(); // optionally reset the form
+            }}
+          >
             <label className="bg-slate-900 pl-4">
               Update Name:
               <input
@@ -129,7 +138,16 @@ export function ProjectSettings({
           </form>
         </div>
         <div className="flex flex-col">
-          <form className="flex flex-col gap-4" action={handleInviteTeamMember}>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const formData = new FormData(e.currentTarget);
+              await handleInviteTeamMember(formData);
+              form.reset();
+            }}
+          >
             <label className="bg-slate-900 pl-4">
               Invite by email:
               <input className="m-4" type="email" name="email" required />
@@ -147,13 +165,15 @@ export function ProjectSettings({
             {team.map((t) => (
               <div key={t.id} className="flex p-1">
                 <li>{t.email}</li>
-                <button
-                  disabled={deleting}
-                  onClick={() => handleDeleteTeamMember(t.id, project.id)}
-                  className="hover:cursor-pointer"
-                >
-                  <TrashIcon />
-                </button>
+                {t.id !== project.ownerId && (
+                  <button
+                    disabled={deleting}
+                    onClick={() => handleDeleteTeamMember(t.id, project.id)}
+                    className="hover:cursor-pointer"
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
               </div>
             ))}
           </div>

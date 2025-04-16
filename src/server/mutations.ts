@@ -19,7 +19,6 @@ import {
   getTeamMembers,
 } from "./queries";
 import { redirect } from "next/navigation";
-import { error } from "console";
 
 export async function createProject(props: {
   name: string;
@@ -53,7 +52,7 @@ export async function createProject(props: {
     return { error: "Failed to add you as teammate" };
   }
 
-  return { error: true };
+  return { error: null };
 }
 
 export async function deleteProject({ id }: { id: number }) {
@@ -89,12 +88,11 @@ export async function updateProject({
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
 
-  const projectToUpdate = await db.query.projects.findFirst({
-    where: (model, { eq }) => eq(model.id, id),
-  });
-
-  if (!projectToUpdate) return { error: "Unauthorized" };
-  if (projectToUpdate.ownerId !== userId) return { error: "Unauthorized" };
+  const projectToUpdate = await getProjectById({ id });
+  if (projectToUpdate.error || !projectToUpdate.data) {
+    return { error: "Failed to fetch project" };
+  }
+  if (projectToUpdate.data.ownerId !== userId) return { error: "Unauthorized" };
 
   const updateData: Record<string, string> = {};
 
@@ -106,12 +104,19 @@ export async function updateProject({
   }
 
   if (Object.keys(updateData).length === 0) {
-    return { error: "Unauthorized" };
+    return { error: "Not enough parameters" };
   }
 
-  await db.update(projects).set(updateData).where(eq(projects.id, id));
+  await db
+    .update(projects)
+    .set(updateData)
+    .where(eq(projects.id, id))
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath(`/projects/${id}`);
+  return { error: null };
 }
 
 export async function createTask(props: {
@@ -130,9 +135,13 @@ export async function createTask(props: {
     return { error: "Unauthorized" };
   }
 
-  const project = await db.query.projects.findFirst({
-    where: (model, { eq }) => eq(model.id, props.projectId),
-  });
+  const project = await db.query.projects
+    .findFirst({
+      where: (model, { eq }) => eq(model.id, props.projectId),
+    })
+    .catch((e) => {
+      return { error: e };
+    });
 
   if (!project) return { error: "Unauthorized" };
 
@@ -158,7 +167,12 @@ export async function deleteTask({ id }: { id: number }) {
   const taskToDelete = await getTaskById({ id });
   if (!taskToDelete) return { error: "Unauthorized" };
 
-  await db.delete(tasks).where(eq(tasks.id, id));
+  await db
+    .delete(tasks)
+    .where(eq(tasks.id, id))
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath(`/projects/${id}`);
 
@@ -172,32 +186,31 @@ export async function updateTaskCategory(props: {
   const user = await auth();
 
   if (!user.userId) return { error: "Unauthorized" };
-  if (!props.id) return { error: "Unauthorized" };
-  if (!props.newCategory) return { error: "Unauthorized" };
+  if (!props.id) return { error: "No ID" };
+  if (!props.newCategory) return { error: "No Category" };
 
   if (!["Required", "In_Progress", "Finished"].includes(props.newCategory)) {
-    return { error: "Unauthorized" };
+    return { error: "Invalid category" };
   }
 
   const task = await db.query.tasks.findFirst({
-    where: (tasks, { eq, and }) =>
-      and(eq(tasks.id, props.id), eq(tasks.userId, user.userId)),
+    where: (tasks, { eq }) => eq(tasks.id, props.id),
   });
 
   if (!task) {
-    return { error: "Unauthorized" };
+    return { error: "Task not foung" };
   }
 
   const projOfTask = await db.query.projects.findFirst({
     where: (model, { eq }) => eq(model.id, task.projectId),
   });
 
-  if (!projOfTask) return { error: "Unauthorized" };
+  if (!projOfTask) return { error: "No project has this task" };
 
   const team = await getTeamMembers({ projectId: projOfTask.id });
   if (team.error || !team.data) return { error: team.error };
   if (!team.data.some((teammate) => teammate.id === user.userId)) {
-    return { error: "Unauthorized" };
+    return { error: "You are not on the team :(" };
   }
 
   await db
@@ -206,7 +219,10 @@ export async function updateTaskCategory(props: {
       category: props.newCategory,
       updatedAt: new Date(),
     })
-    .where(eq(tasks.id, props.id));
+    .where(eq(tasks.id, props.id))
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath("/");
 
@@ -241,10 +257,15 @@ export async function addTeamMember({
 
   const userId = users[0]!.id;
 
-  await db.insert(projectMembers).values({
-    projectId: projectId,
-    userId: userId,
-  });
+  await db
+    .insert(projectMembers)
+    .values({
+      projectId: projectId,
+      userId: userId,
+    })
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath(`/projects`);
   return { error: null };
@@ -283,8 +304,13 @@ export async function deleteTeamMember({
         eq(projectMembers.projectId, projectId),
         eq(projectMembers.userId, id),
       ),
-    );
+    )
+    .catch((e) => {
+      return { error: e };
+    });
+
   revalidatePath(`/projects/${projectId}`);
+  return { error: null };
 }
 
 export async function leaveTeam({ projectId }: { projectId: number }) {
@@ -311,8 +337,13 @@ export async function leaveTeam({ projectId }: { projectId: number }) {
         eq(projectMembers.projectId, projectId),
         eq(projectMembers.userId, userId),
       ),
-    );
+    )
+    .catch((e) => {
+      return { error: e };
+    });
+
   redirect("/projects");
+  return { error: null };
 }
 
 export async function inviteTeamMember({
@@ -353,15 +384,47 @@ export async function inviteTeamMember({
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7);
 
-  await db.insert(projectInvitations).values({
-    projectId,
-    invitedEmail: userEmail,
-    invitedBy: userId,
-    status: "pending",
-    expiresAt,
-  });
+  await db
+    .insert(projectInvitations)
+    .values({
+      projectId,
+      invitedEmail: userEmail,
+      invitedBy: userId,
+      status: "pending",
+      expiresAt,
+    })
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath(`/projects/${projectId}`);
+  return { error: null };
+}
+
+export async function removeInvitation({
+  invitationId,
+}: {
+  invitationId: number;
+}) {
+  const { userId } = await auth();
+  if (!userId) return { error: "Unauthorized" };
+
+  const invite = await getInvitationById({ invitationId });
+  if (invite.error || !invite.data) return { error: invite.error };
+
+  const project = await getProjectById({ id: invite.data.project.id });
+  if (project.error || !project.data) return { error: project.error };
+  if (project.data.ownerId !== userId) {
+    return { error: "Unauthorized" };
+  }
+
+  await db
+    .delete(projectInvitations)
+    .where(eq(projectInvitations.id, invitationId))
+    .catch((e) => {
+      return { error: e };
+    });
+
   return { error: null };
 }
 
@@ -390,19 +453,31 @@ export async function acceptInvitation({
     await db
       .update(projectInvitations)
       .set({ status: "expired" })
-      .where(eq(projectInvitations.id, invitationId));
+      .where(eq(projectInvitations.id, invitationId))
+      .catch((e) => {
+        return { error: e };
+      });
+
     return { error: "Unauthorized" };
   }
 
   await db
     .update(projectInvitations)
     .set({ status: "accepted" })
-    .where(eq(projectInvitations.id, invitationId));
+    .where(eq(projectInvitations.id, invitationId))
+    .catch((e) => {
+      return { error: e };
+    });
 
-  await db.insert(projectMembers).values({
-    projectId: invite.data.projectId,
-    userId,
-  });
+  await db
+    .insert(projectMembers)
+    .values({
+      projectId: invite.data.projectId,
+      userId,
+    })
+    .catch((e) => {
+      return { error: e };
+    });
 
   revalidatePath("/");
   return { error: null };
